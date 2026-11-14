@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% block content %}<div class="container-page"><div class="page-head"><div><div class="eyebrow">Public documentation</div><h1>Technical documentation</h1><p>Everything required to explain, reproduce and defend the project is organized in the repository.</p></div></div><div class="grid-2"><div class="cardx"><h2>Repository layers</h2><div class="codebox">data/raw/          source files
+data/processed/    clean modeling tables
+src/               ingestion, preparation, models, evaluation
+reports/           metrics, backtests and figures
+supabase/          authentication/database migrations
+web/               Flask presentation layer
+docs/              CRISP-ML(Q), data dictionary, user guide</div></div><div class="cardx"><h2>Reproduce</h2><div class="codebox">python -m pytest
+python -m src.pipeline --sin-preparar
+python app.py</div><p class="muted mt-3">For a fresh data run, the original ingestion pipeline also supports the <code>--actualizar-fuentes</code> option.</p></div></div><div class="cardx mt-3"><h2>Academic interpretation</h2><p class="muted">The project should be presented as an evidence-based forecasting prototype. The final test block is not used to tune the models, and uncertainty is communicated explicitly.</p></div></div>{% endblock %}
