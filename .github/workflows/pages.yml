@@ -1,9 +1,7 @@
 name: Publicar sitio
 
+# The system is now served by Flask on Render; the static Pages copy is only published on demand.
 on:
-  push:
-    branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
