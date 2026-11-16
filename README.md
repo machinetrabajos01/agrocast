@@ -4,6 +4,8 @@ Web information system for producers and technical teams in Colombia. It manages
 purchase plans and evaluates every plan with the SARIMA model selected in Activity 1, which forecasts
 the official UPRA agricultural input price index six months ahead.
 
+**Published system:** https://agrocast-ay0u.onrender.com (health check: `/health`)
+
 - Public homepage with the project documentation (problem, objectives, CRISP-ML(Q), models, system design).
 - Registration, login and logout; passwords stored as salted scrypt hashes; CSRF protection on every form.
 - Three roles enforced on the server: **producer**, **analyst** and **admin**.
