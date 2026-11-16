@@ -132,10 +132,11 @@ class PurchasePlan(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
     closed_at = db.Column(db.DateTime(timezone=True))
-    owner = db.relationship("User")
-    farm = db.relationship("Farm", back_populates="plans")
-    items = db.relationship("PlanItem", back_populates="plan", cascade="all, delete-orphan", passive_deletes=True)
-    last_inference = db.relationship("Inference", foreign_keys=[last_inference_id], post_update=True)
+    owner = db.relationship("User", lazy="joined")
+    farm = db.relationship("Farm", back_populates="plans", lazy="joined")
+    items = db.relationship("PlanItem", back_populates="plan", cascade="all, delete-orphan", passive_deletes=True,
+                            lazy="selectin")
+    last_inference = db.relationship("Inference", foreign_keys=[last_inference_id], post_update=True, lazy="joined")
 
     @property
     def planned_cost(self):
@@ -162,7 +163,7 @@ class PlanItem(db.Model):
     unit_price = db.Column(db.Numeric(14, 2), nullable=False)
     actual_unit_price = db.Column(db.Numeric(14, 2))
     plan = db.relationship("PurchasePlan", back_populates="items")
-    product = db.relationship("ProductPrice")
+    product = db.relationship("ProductPrice", lazy="joined")
 
 
 class Inference(db.Model):
@@ -184,9 +185,9 @@ class Inference(db.Model):
     recommendation = db.Column(db.Text, nullable=False)
     response_ms = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
-    user = db.relationship("User")
+    user = db.relationship("User", lazy="joined")
     plan = db.relationship("PurchasePlan", foreign_keys=[plan_id])
-    model_version = db.relationship("ModelVersion")
+    model_version = db.relationship("ModelVersion", lazy="joined")
 
 
 class DriftCheck(db.Model):
@@ -220,8 +221,8 @@ class Incident(db.Model):
     resolution = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
-    reporter = db.relationship("User", foreign_keys=[reporter_id])
-    assignee = db.relationship("User", foreign_keys=[assigned_to])
+    reporter = db.relationship("User", foreign_keys=[reporter_id], lazy="joined")
+    assignee = db.relationship("User", foreign_keys=[assigned_to], lazy="joined")
 
 
 class EventLog(db.Model):

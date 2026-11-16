@@ -64,7 +64,9 @@ Performed on the production database with the three test accounts:
 | Authentication | registration, login, logout and failed login logged; role field injected in registration ignored (account created as producer) |
 | Role permissions | producer → 403 in admin and analyst modules; analyst → 403 in admin modules; admin cannot change own role |
 | Business workflow | plan draft → evaluated → approved (decision against the model with justification) → purchased; deferred plan kept open |
-| Model inference | 5 inferences, average response ≈ 260 ms, 0 rejected, 0 server errors |
-| Operational log | 49 events recorded (authentication, business operations, inferences, monitoring); one slow request (> 3 s) |
+| Model inference | 5 inferences stored with user, input, result and version; average response 600 ms (first call 1.36 s while the artifact is loaded), 0 rejected inputs, 0 server errors |
+| Response times | 10 requests above 3 s, all caused by database round trips from a client in Colombia to the US-East database (many small lazy-loaded queries per page) |
+| Action taken | eager loading of plan items, products, users and model versions and a cached active-model lookup: dashboard 2.3 s → 1.1 s, plan list 1.2 s → 0.6 s in the same conditions; the Render service is placed in Virginia, the same region as the database |
+| Operational log | 52 events recorded (authentication, business operations, inferences, monitoring, slow requests) |
 | Drift check | total, fertilizers and pesticides: status ok |
 | Forecast vs actual | pending: no target month observed yet (first comparison when UPRA publishes September 2026) |
