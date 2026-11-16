@@ -1,0 +1,24 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Reports</div><h1>Business indicators</h1><p>How the purchase planning process is used and how often the model recommendation is followed.</p></div>
+    <a class="btn btn-ghost" href="{{ url_for('history_csv') }}"><i class="bi bi-download"></i> Inference history (CSV)</a></div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Users · farms</div><div class="value">{{ users }} · {{ farms }}</div></div>
+    <div class="kpi"><div class="label">Purchase plans</div><div class="value">{{ total_plans }}</div><div class="note">{{ closed }} closed as purchased</div></div>
+    <div class="kpi"><div class="label">Decisions following the model</div><div class="value">{{ '%.1f%%'|format(follow_rate) if follow_rate is not none else '—' }}</div><div class="note">{{ decided }} decisions recorded</div></div>
+    <div class="kpi"><div class="label">Planned − actual cost</div><div class="value">{{ '{:,.0f}'.format(savings) }}</div><div class="note">COP in purchased plans · {{ open_incidents }} open reports</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="cardx"><h2>Plans by status</h2><div class="chart-wrap" style="height:240px"><canvas id="statusChart"></canvas></div></div>
+    <div class="cardx"><h2>Model recommendations issued</h2>
+      <div class="table-wrap mt-2"><table class="table-darkx" style="min-width:300px"><tbody>{% for k, v in rec_counts.items() %}<tr><td><span class="rec rec-{{ k }}">{{ decision_labels[k] }}</span></td><td>{{ v }}</td></tr>{% else %}<tr><td class="muted">No inferences yet.</td></tr>{% endfor %}</tbody></table></div>
+      <h3 class="h6 mt-4">Planned value by category</h3>
+      <div class="table-wrap"><table class="table-darkx" style="min-width:300px"><thead><tr><th>Category</th><th>Plans</th><th>Planned (COP)</th></tr></thead><tbody>{% for k, v in by_category.items() %}<tr><td>{{ category_labels[k] }}</td><td>{{ v.plans }}</td><td>{{ '{:,.0f}'.format(v.planned) }}</td></tr>{% endfor %}</tbody></table></div></div>
+  </div>
+</div>{% endblock %}
+{% block scripts %}<script>
+const st = {{ status_counts|tojson }};
+const el = document.getElementById('statusChart');
+if (el) new Chart(el, {type: 'bar', data: {labels: Object.keys(st), datasets: [{label: 'Plans', data: Object.values(st), backgroundColor: '#8bc34a'}]},
+  options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {ticks: {color: '#9ba79e'}, grid: {color: '#202920'}}, y: {ticks: {color: '#9ba79e', precision: 0}, grid: {color: '#202920'}}}}});
+</script>{% endblock %}

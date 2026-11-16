@@ -1,0 +1,20 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Administration</div><h1>Model versions</h1>
+    <p>Each version is a frozen artifact in <code>models/</code> with its specification, parameters, data cut-off and evaluation metrics. Only one version serves predictions; every inference stores the version that produced it.</p></div></div>
+  {% for v in versions %}{% set sel = v.metrics.selection %}
+  <div class="cardx mb-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2"><div><h2 class="mb-1">{{ v.algorithm }} v{{ v.version }} {% if v.is_active %}<span class="status status-approved">active</span>{% endif %}</h2>
+      <div class="small-note">Artifact {{ v.artifact }} · trained {{ v.trained_at.strftime('%Y-%m-%d %H:%M') }} · data cut-off {{ v.data_cutoff }} · {{ usage.get(v.id, 0) }} inferences</div></div>
+      {% if not v.is_active %}<form method="post">{{ csrf_field() }}<input type="hidden" name="version" value="{{ v.version }}"><button class="btn btn-accent" {{ 'disabled' if v.version not in artifacts }}>Activate</button></form>{% endif %}</div>
+    <p class="muted mt-2">{{ v.notes or '' }} Selection rule: {{ sel.rule }}.</p>
+    <div class="table-wrap"><table class="table-darkx" style="min-width:560px"><thead><tr><th>Block</th><th>MAE</th><th>RMSE</th><th>MASE</th><th>Persistence MASE</th></tr></thead><tbody>
+      {% for b in ['validacion','prueba'] %}<tr><td>{{ 'Validation' if b == 'validacion' else 'Final test' }}</td><td>{{ sel.metrics[b].mae }}</td><td>{{ sel.metrics[b].rmse }}</td><td>{{ sel.metrics[b].mase }}</td><td>{{ sel.baseline[b].mase }}</td></tr>{% endfor %}</tbody></table></div>
+    <div class="table-wrap mt-2"><table class="table-darkx" style="min-width:560px"><thead><tr><th>Series</th><th>Order (p,d,q)</th><th>Seasonal</th><th>AICc</th><th>Training window</th></tr></thead><tbody>
+      {% for s, spec in v.metrics.series.items() %}<tr><td>{{ s }}</td><td>{{ spec.order }}</td><td>{{ spec.seasonal_order }}</td><td>{{ spec.aicc }}</td><td>{{ spec.train_start }} → {{ spec.train_end }} ({{ spec.n_obs }} months)</td></tr>{% endfor %}</tbody></table></div>
+  </div>{% endfor %}
+  <div class="cardx"><h2>Publishing a new version</h2><div class="codebox">python -m src.pipeline --actualizar-fuentes   # download, prepare, evaluate candidates
+python -m src.train_model --version 1.1.0      # freeze the selected specification
+flask --app app seed                          # register the version (inactive)
+# commit models/sarima_v1.1.0.*, deploy, then activate it here</div></div>
+</div>{% endblock %}

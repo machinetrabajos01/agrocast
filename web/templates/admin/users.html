@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Administration</div><h1>Users & roles</h1>
+    <p>New accounts are always producers. Only administrators assign the analyst or administrator role or disable an account; an administrator cannot change their own role or status. A role change closes the user's current session.</p></div></div>
+  <div class="kpi-grid three">{% for r in roles %}<div class="kpi"><div class="label">{{ r }}</div><div class="value">{{ counts.get(r, 0) }}</div></div>{% endfor %}</div>
+  <div class="d-flex gap-2 mb-3"><a class="btn btn-sm {{ 'btn-accent' if not role else 'btn-ghost' }}" href="{{ url_for('admin_users') }}">All</a>{% for r in roles %}<a class="btn btn-sm {{ 'btn-accent' if role == r else 'btn-ghost' }}" href="{{ url_for('admin_users', role=r) }}">{{ r }}</a>{% endfor %}</div>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Created</th><th>Last login</th><th>Role</th><th>Active</th><th></th></tr></thead><tbody>
+  {% for u in users %}{% set fid = 'u' ~ u.id %}<tr>
+    <td>{{ u.full_name }}</td><td>{{ u.email }}</td><td>{{ u.department or '—' }}</td><td>{{ u.created_at.strftime('%Y-%m-%d') }}</td><td>{{ u.last_login_at.strftime('%Y-%m-%d %H:%M') if u.last_login_at else '—' }}</td>
+    <td>{% if u.id == current_user.id %}<span class="role-badge role-{{ u.role }}">{{ u.role }}</span>{% else %}<select form="{{ fid }}" class="form-select form-select-sm" name="role" aria-label="Role">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == u.role }}>{{ r }}</option>{% endfor %}</select>{% endif %}</td>
+    <td>{% if u.id == current_user.id %}yes{% else %}<select form="{{ fid }}" class="form-select form-select-sm" name="is_active" aria-label="Active"><option value="1" {{ 'selected' if u.is_active }}>yes</option><option value="0" {{ 'selected' if not u.is_active }}>no</option></select>{% endif %}</td>
+    <td>{% if u.id != current_user.id %}<form id="{{ fid }}" method="post" action="{{ url_for('admin_user_update', user_id=u.id) }}">{{ csrf_field() }}<button class="btn btn-sm btn-ghost">Save</button></form>{% else %}<span class="small-note">you</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>{% endblock %}

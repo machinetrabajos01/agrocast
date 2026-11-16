@@ -1,0 +1,31 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Model operations</div><h1>Model monitoring</h1>
+    <p>Inference volume and response times, forecasts compared with the official value once it is published, and checks for changes in the input data.</p></div>
+    <form method="post">{{ csrf_field() }}<button class="btn btn-accent"><i class="bi bi-activity"></i> Run drift & performance check</button></form></div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Inferences · 30 days</div><div class="value">{{ stats.inferences_30d }}</div><div class="note">{{ stats.rejected_30d }} rejected by input validation</div></div>
+    <div class="kpi"><div class="label">Response time</div><div class="value">{{ stats.avg_ms if stats.avg_ms is not none else '—' }} <span class="small-note">ms</span></div><div class="note">p95 {{ stats.p95_ms if stats.p95_ms is not none else '—' }} ms</div></div>
+    <div class="kpi"><div class="label">Server errors · 30 days</div><div class="value {{ 'negative' if stats.errors_30d else 'positive' }}">{{ stats.errors_30d }}</div><div class="note">from the operational log</div></div>
+    <div class="kpi"><div class="label">Forecasts awaiting actuals</div><div class="value">{{ stats.pending }}</div><div class="note">{% if stats.mape is defined %}MAPE {{ stats.mape }}% · coverage 80%: {{ stats.coverage80 }}%{% else %}no target month observed yet{% endif %}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="cardx"><h2>Inference activity</h2><div class="chart-wrap" style="height:240px"><canvas id="activityChart"></canvas></div></div>
+    <div class="cardx"><h2>Drift and performance checks</h2>
+      <div class="table-wrap mt-2"><table class="table-darkx" style="min-width:520px"><thead><tr><th>Date</th><th>Series</th><th>Status</th><th>z (mean)</th><th>Volatility ratio</th><th>MAPE</th></tr></thead><tbody>
+      {% for c in checks %}<tr><td>{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ c.series }}</td><td><span class="status status-{{ c.status }}">{{ c.status }}</span></td><td>{{ c.z_score|float|round(2) }}</td><td>{{ c.volatility_ratio|float|round(2) }}</td><td>{{ '%.2f%%'|format(c.mae_recent|float) if c.mae_recent is not none else '—' }}</td></tr>
+      {% else %}<tr><td colspan="6" class="muted">No checks yet.</td></tr>{% endfor %}</tbody></table></div>
+      <p class="small-note mt-2">The last 12 monthly log changes are compared with the training distribution. Warning: |z| &gt; 2 or volatility ratio &gt; 1.5; alert: |z| &gt; 3 or ratio outside 0.33–2. A MAPE above 10% also raises a warning and is a retraining trigger.</p></div>
+  </div>
+  <div class="cardx mt-3"><h2>Forecast vs actual</h2><p class="muted small">Stored forecasts whose target month is already registered in the index records.</p>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Inference</th><th>Series</th><th>Target month</th><th>h</th><th>Forecast</th><th>Actual</th><th>Error</th><th>Inside 80%</th><th>Version</th></tr></thead><tbody>
+    {% for r in compared %}<tr><td><a href="{{ url_for('inference_detail', inference_id=r.id) }}">#{{ r.id }}</a></td><td>{{ r.series }}</td><td>{{ r.target_month.strftime('%Y-%m') }}</td><td>{{ r.horizon }}</td><td>{{ r.predicted|round(2) }}</td><td>{{ r.actual|round(2) }}</td><td>{{ '%+.2f'|format(r.error_pct) }}%</td><td>{{ 'yes' if r.inside_80 else 'no' }}</td><td>{{ r.version }}</td></tr>
+    {% else %}<tr><td colspan="9" class="muted">No target month has been observed yet. When the analyst registers the next UPRA month, the comparison appears here automatically.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>{% endblock %}
+{% block scripts %}<script>
+const days = {{ by_day|map('list')|list|tojson }};
+renderChart('activityChart', days.map(d => String(d[0]).slice(0,10)), [
+  {label: 'Inferences', data: days.map(d => d[1]), borderColor: '#8bc34a', borderWidth: 2, tension: .2},
+  {label: 'Avg response (ms)', data: days.map(d => Math.round(d[2])), borderColor: '#78a8d9', borderWidth: 2, tension: .2}
+]);
+</script>{% endblock %}
