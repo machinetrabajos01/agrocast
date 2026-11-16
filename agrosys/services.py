@@ -41,7 +41,10 @@ def record_event(event: str, level: str = "info", status_code: int | None = None
 # ---------------------------------------------------------------- model and data
 
 def active_model() -> ModelVersion:
+    if g.get("active_model") is not None:
+        return g.active_model
     model = ModelVersion.query.filter_by(is_active=True).first()
+    g.active_model = model
     if not model:
         raise BusinessRuleError("There is no active model version. An administrator must activate one.")
     return model
@@ -148,6 +151,13 @@ def evaluate_plan(plan: PurchasePlan) -> Inference:
     return inf
 
 
+def _active_model_id():
+    try:
+        return active_model().id
+    except BusinessRuleError:
+        return None
+
+
 def plan_projection(plan: PurchasePlan) -> dict | None:
     inf = plan.last_inference
     if not inf:
@@ -161,7 +171,7 @@ def plan_projection(plan: PurchasePlan) -> dict | None:
         "difference": cost * change / 100,
         "lo_cost": cost * (1 + out["change_lo80_pct"] / 100),
         "hi_cost": cost * (1 + out["change_hi80_pct"] / 100),
-        "stale": inf.model_version_id != (ModelVersion.query.filter_by(is_active=True).with_entities(ModelVersion.id).scalar()),
+        "stale": inf.model_version_id != _active_model_id(),
     }
 
 
