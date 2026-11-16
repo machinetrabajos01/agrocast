@@ -32,6 +32,8 @@ app = Flask(__name__, template_folder="web/templates", static_folder="web/static
 secret = os.getenv("FLASK_SECRET_KEY")
 if not secret and os.getenv("RENDER"):
     raise RuntimeError("FLASK_SECRET_KEY must be configured in the deployed environment.")
+if not os.getenv("DATABASE_URL", "").strip() and os.getenv("RENDER"):
+    raise RuntimeError("DATABASE_URL must be configured in the deployed environment.")
 app.secret_key = secret or "local-development-only-key"
 init_system(app)
 
