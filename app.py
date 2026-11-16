@@ -138,6 +138,8 @@ def health():
     reason = None
     try:
         db.session.execute(db.text("select 1"))
+        # The application tables must be readable too, not only the connection.
+        db.session.query(Farm.id).limit(1).all()
         database = "ok"
     except Exception as exc:
         db.session.rollback()
