@@ -13,7 +13,21 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import JSON, CheckConstraint, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+def _normalize_database_url(raw: str) -> str:
+    """Accept the usual ways the value is pasted in hosting dashboards (quotes, spaces, KEY= prefix)."""
+    url = (raw or "").strip().strip("'\"").strip()
+    if url.upper().startswith("DATABASE_URL="):
+        url = url.split("=", 1)[1].strip().strip("'\"")
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            url = "postgresql+psycopg://" + url[len(prefix):]
+    if url and not url.startswith(("postgresql+psycopg://", "sqlite:///")):
+        raise RuntimeError("DATABASE_URL must start with postgresql:// (or be empty for local SQLite). "
+                           f"Received a value starting with {url[:12]!r}.")
+    return url
+
+
+DATABASE_URL = _normalize_database_url(os.getenv("DATABASE_URL", ""))
 IS_POSTGRES = DATABASE_URL.startswith("postgres")
 SCHEMA = "agrocast" if IS_POSTGRES else None
 P = f"{SCHEMA}." if SCHEMA else ""
