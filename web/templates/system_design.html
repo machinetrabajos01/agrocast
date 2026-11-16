@@ -1,0 +1,80 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Public documentation</div><h1>System design</h1><p>Users, business processes, requirements, business rules, architecture, database model and the place of machine learning in the workflow.</p></div></div>
+
+  <div class="grid-2">
+    <div class="cardx"><h2>Users and roles</h2>
+      <div class="table-wrap"><table class="table-darkx" style="min-width:420px"><thead><tr><th>Role</th><th>Who</th><th>Main functions</th></tr></thead><tbody>
+        <tr><td><span class="role-badge role-producer">producer</span></td><td>Farmer, association or input buyer (self-registration)</td><td>Farms, purchase plans, model evaluation, decisions, purchase registration, own history and reports</td></tr>
+        <tr><td><span class="role-badge role-analyst">analyst</span></td><td>Technical assistant or data analyst (assigned)</td><td>Index records, forecast lab, monitoring, indicators, read-only view of all plans, incident follow-up</td></tr>
+        <tr><td><span class="role-badge role-admin">admin</span></td><td>System owner (assigned)</td><td>Users and roles, model versions, operational log, every other function</td></tr>
+      </tbody></table></div></div>
+    <div class="cardx"><h2>Business processes</h2>
+      <ol class="muted small">
+        <li><strong>Farm management</strong> — register, edit and remove production units.</li>
+        <li><strong>Input purchase planning</strong> — draft plan → products priced with SIPSA-I → model evaluation → decision (approve / defer) → purchase with actual prices → closed. Plans can be cancelled while open.</li>
+        <li><strong>Index data management</strong> — register each new UPRA month, correct values, keep the series continuous.</li>
+        <li><strong>Support</strong> — incidents and feedback: report → assign → in progress → resolved → closed.</li>
+        <li><strong>Model operation</strong> — inference history, forecast vs actual, drift checks, version activation, user administration.</li></ol></div>
+  </div>
+
+  <div class="grid-2 mt-3">
+    <div class="cardx"><h2>Functional requirements</h2><ul class="muted small">
+      <li>FR1 Registration, login and logout with hashed passwords.</li><li>FR2 Role-based authorization enforced on the server.</li>
+      <li>FR3 CRUD of farms, purchase plans and plan items.</li><li>FR4 Evaluate a plan with the production model and show the recommendation, projected cost, interval, meaning and limitations.</li>
+      <li>FR5 Record the decision and the actual purchase.</li><li>FR6 Store every inference with date, user, input, result, model version and response time.</li>
+      <li>FR7 CRUD of index observations (analyst).</li><li>FR8 Forecast lab and JSON API with stored or scenario inputs.</li>
+      <li>FR9 Monitoring: response times, errors, forecast vs actual, drift checks.</li><li>FR10 Indicators and CSV export.</li><li>FR11 Incident and feedback management.</li><li>FR12 User, role and model version administration.</li></ul></div>
+    <div class="cardx"><h2>Business rules</h2><ul class="muted small">
+      <li>BR1 Self-registration always creates a producer; any role sent by the client is ignored.</li>
+      <li>BR2 Only administrators change roles or disable accounts, never their own.</li>
+      <li>BR3 Producers only see and modify their own farms, plans, inferences and reports.</li>
+      <li>BR4 The purchase month must be within the six months after the latest official index month.</li>
+      <li>BR5 Item prices come from the latest SIPSA-I record, not from the user.</li>
+      <li>BR6 A plan needs at least one item to be evaluated; changing items or the month returns it to draft.</li>
+      <li>BR7 A decision requires a current evaluation with the active model version; a decision different from the model requires a justification.</li>
+      <li>BR8 Only approved plans can be closed as purchased, and all actual prices are required.</li>
+      <li>BR9 Approved or closed plans cannot be edited; only draft or cancelled plans can be deleted; farms with plans cannot be deleted.</li>
+      <li>BR10 Index values must be positive, monthly and continuous; only the latest month can be deleted.</li>
+      <li>BR11 Exactly one model version is active at a time.</li>
+      <li>BR12 Incidents can only be resolved or closed with a written resolution.</li></ul></div>
+  </div>
+
+  <div class="cardx mt-3"><h2>Architecture</h2>
+    <div class="codebox">Browser (Bootstrap + Chart.js)
+   │  HTTPS · session cookie (HttpOnly, SameSite) · CSRF token
+   ▼
+Flask application  (gunicorn on Render)
+   ├─ agrosys/security.py   authentication, permission matrix, CSRF
+   ├─ agrosys/views_*.py    farms · plans · incidents · index records · lab · monitoring · admin
+   ├─ agrosys/services.py   business rules, inference + history, monitoring, event log
+   └─ src/inference.py      SARIMA artifact models/sarima_v1.0.0.joblib (log, d=1, frozen params)
+   │  SQLAlchemy · psycopg · Supavisor pooler (TLS)
+   ▼
+Supabase PostgreSQL · schema agrocast (RLS on, only the server role has access)
+
+Offline: src/pipeline.py (Activity 1) → reports/ → src/train_model.py → models/</div></div>
+
+  <div class="grid-2 mt-3">
+    <div class="cardx"><h2>Database model</h2><div class="codebox">app_user (id, full_name, email UQ, password_hash, role, is_active)
+farm (id, owner_id→app_user, name, department, main_crop, area_ha)
+product_price (id, category, product, presentation, price, price_month)
+purchase_plan (id, owner_id→app_user, farm_id→farm, category,
+               planned_month, status, recommendation, decision,
+               last_inference_id→inference)
+plan_item (id, plan_id→purchase_plan, product_price_id→product_price,
+           quantity, unit_price, actual_unit_price)
+model_version (id, version UQ, algorithm, artifact, metrics, is_active)
+index_observation (series, month PK, value, entered_by→app_user)
+inference (id, user_id, plan_id, model_version_id, series, horizon,
+           input_source, input/output JSON, target_month,
+           predicted_value, change_pct, recommendation, response_ms)
+drift_check (id, model_version_id, series, status, z_score, ...)
+incident (id, reporter_id, assigned_to, kind, severity, status, ...)
+event_log (id, level, event, user_id, path, status_code, duration_ms)</div></div>
+    <div class="cardx"><h2>Where machine learning contributes</h2>
+      <p class="muted">The model supports one decision of the purchasing process: <strong>when to buy the inputs of a plan</strong>. When the producer evaluates a plan, the server maps the plan category to the fertilizer or pesticide index, computes the horizon between the latest official month and the purchase month and runs SARIMA on the stored records.</p>
+      <ul class="muted small"><li>Expected rise ≥ 3% → <span class="rec rec-buy_now">Buy now</span> to protect the budget.</li><li>Expected fall ≥ 3% → <span class="rec rec-defer">Defer purchase</span>; the plan stays open for re-evaluation.</li><li>Otherwise → <span class="rec rec-as_planned">Buy as planned</span>.</li></ul>
+      <p class="muted small mb-0">The forecast change is applied to the plan cost to obtain the projected cost and an 80% range. The decision is recorded next to the recommendation, which allows measuring how often the model is followed and comparing projected and actual costs.</p></div>
+  </div>
+</div>{% endblock %}

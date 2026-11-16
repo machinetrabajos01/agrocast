@@ -1,0 +1,41 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Analyst tools</div><h1>Forecast lab</h1>
+    <p>Run the production model on the stored records or on a scenario with manually entered months (for example, a preliminary value announced before the official publication). Every run is stored in the inference history.</p></div>
+    {% if model %}<span class="tag">Active model: {{ model.algorithm }} v{{ model.version }} · cut-off {{ model.data_cutoff }}</span>{% endif %}</div>
+  <div class="grid-2">
+    <div class="cardx"><h2>Input</h2>
+      <form method="post" class="mt-3">{{ csrf_field() }}
+        <div class="form-grid">
+          <div><label for="series">Series</label><select id="series" class="form-select" name="series">{% for s, label in labels.items() %}<option value="{{ s }}" {{ 'selected' if request.form.get('series') == s }}>{{ label }}</option>{% endfor %}</select></div>
+          <div><label for="horizon">Horizon (months)</label><select id="horizon" class="form-select" name="horizon">{% for h in range(1,7) %}<option value="{{ h }}" {{ 'selected' if (request.form.get('horizon') or '6') == h|string }}>{{ h }}</option>{% endfor %}</select></div>
+          <div class="full"><label>Data source</label>
+            <div class="form-check"><input class="form-check-input" type="radio" name="source" id="src1" value="system_records" {{ 'checked' if request.form.get('source') != 'manual_entry' }}><label class="form-check-label" for="src1">System records (official index up to {{ last.strftime('%Y-%m') if last else '—' }})</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="source" id="src2" value="manual_entry" {{ 'checked' if request.form.get('source') == 'manual_entry' }}><label class="form-check-label" for="src2">System records + scenario months entered below</label></div></div>
+          {% for i in range(1,4) %}<div><label for="m{{ i }}">Scenario month {{ i }}</label><input id="m{{ i }}" class="form-control" type="month" name="m{{ i }}" value="{{ request.form.get('m' ~ i, '') }}"></div>
+          <div><label for="v{{ i }}">Index value</label><input id="v{{ i }}" class="form-control" type="number" step="0.0001" min="1" name="v{{ i }}" value="{{ request.form.get('v' ~ i, '') }}"></div>{% endfor %}
+        </div>
+        <p class="small-note mt-2">Scenario months must continue the series without gaps. The model applies the same preprocessing as in training: monthly frequency, natural logarithm and the frozen SARIMA parameters.</p>
+        <button class="btn btn-accent mt-2"><i class="bi bi-cpu"></i> Run model</button></form></div>
+    <div class="cardx"><h2>Result</h2>
+      {% if result %}{% set o = result.output_payload %}
+        <div class="d-flex align-items-center gap-3"><span class="rec rec-{{ result.recommendation }}" style="font-size:1rem">{{ decision_labels[result.recommendation] }}</span><a class="small positive" href="{{ url_for('inference_detail', inference_id=result.id) }}">Inference #{{ result.id }}</a></div>
+        <div class="kpi-grid three mt-3" style="gap:10px">
+          <div class="kpi"><div class="label">{{ o.origin_month }}</div><div class="value">{{ o.last_value }}</div><div class="note">last value</div></div>
+          <div class="kpi"><div class="label">{{ o.target_month }}</div><div class="value">{{ o.predicted_value }}</div><div class="note">forecast</div></div>
+          <div class="kpi"><div class="label">Change</div><div class="value">{{ '%+.2f'|format(o.change_pct) }}%</div><div class="note">80%: {{ o.change_lo80_pct }} / {{ o.change_hi80_pct }}</div></div></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="labChart"></canvas></div>
+        <p class="small mt-3">{{ o.recommendation.reason }}</p>
+      {% else %}<p class="muted">Choose the series and horizon and run the model. Results include the forecast path, 80% and 95% intervals and the purchase recommendation derived from them.</p>{% endif %}
+      <div class="callout small mt-3"><strong>API:</strong> <code>POST /api/v1/forecast</code> with JSON <code>{"series":"fertilizantes","horizon":6}</code>, an authenticated session and the <code>X-CSRF-Token</code> header returns the same result.</div>
+    </div>
+  </div>
+</div>{% endblock %}
+{% block scripts %}{% if result %}<script>
+const o = {{ result.output_payload|tojson }};
+renderChart('labChart', [o.origin_month, ...o.path.map(p => p.month)], [
+  {label: 'Forecast', data: [o.last_value, ...o.path.map(p => p.value)], borderColor: '#8bc34a', borderWidth: 2, tension: .2},
+  {label: '80% upper', data: [o.last_value, ...o.path.map(p => p.hi80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0},
+  {label: '80% lower', data: [o.last_value, ...o.path.map(p => p.lo80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0}
+]);
+</script>{% endif %}{% endblock %}

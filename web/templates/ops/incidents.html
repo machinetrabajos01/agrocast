@@ -1,0 +1,34 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Process 4 · Support</div><h1>Incidents & feedback</h1>
+    <p>Report errors, data problems, doubtful model results, access issues or suggestions. {% if manage %}Analysts and administrators assign, follow up and resolve each report.{% else %}You can follow the status of your reports here.{% endif %}</p></div></div>
+  <div class="kpi-grid">{% for s in statuses %}<div class="kpi"><div class="label">{{ s.replace('_',' ') }}</div><div class="value">{{ counts.get(s, 0) }}</div></div>{% endfor %}</div>
+  <div class="grid-2">
+    <div class="cardx"><h2>{{ 'All reports' if manage else 'My reports' }}</h2>
+      <div class="d-flex flex-wrap gap-2 my-2"><a class="btn btn-sm {{ 'btn-accent' if not status else 'btn-ghost' }}" href="{{ url_for('incidents') }}">All</a>{% for s in statuses %}<a class="btn btn-sm {{ 'btn-accent' if status == s else 'btn-ghost' }}" href="{{ url_for('incidents', status=s) }}">{{ s.replace('_',' ') }}</a>{% endfor %}</div>
+      {% for r in rows %}<div class="border rounded-3 p-3 mb-2" style="border-color:var(--line)!important">
+        <div class="d-flex justify-content-between gap-2"><strong>#{{ r.id }} · {{ r.title }}</strong><span class="status status-{{ r.status }}">{{ r.status.replace('_',' ') }}</span></div>
+        <div class="small-note">{{ r.kind.replace('_',' ') }} · severity {{ r.severity }} · {{ r.reporter.full_name }} · {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}{% if r.assignee %} · assigned to {{ r.assignee.full_name }}{% endif %}</div>
+        <p class="small mt-2 mb-1">{{ r.description }}</p>
+        {% if r.resolution %}<div class="callout small mt-2"><strong>Resolution:</strong> {{ r.resolution }}</div>{% endif %}
+        {% if manage %}<form method="post" action="{{ url_for('incident_update', incident_id=r.id) }}" class="mt-2">{{ csrf_field() }}
+          <div class="form-grid"><div><select class="form-select form-select-sm" name="status" aria-label="Status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == r.status }}>{{ s.replace('_',' ') }}</option>{% endfor %}</select></div>
+          <div><select class="form-select form-select-sm" name="assigned_to" aria-label="Assignee"><option value="">Unassigned</option>{% for u in staff %}<option value="{{ u.id }}" {{ 'selected' if u.id == r.assigned_to }}>{{ u.full_name }} ({{ u.role }})</option>{% endfor %}</select></div>
+          <div class="full"><input class="form-control form-control-sm" name="resolution" value="{{ r.resolution or '' }}" placeholder="Resolution (required to resolve or close)"></div></div>
+          <button class="btn btn-sm btn-ghost mt-2">Update</button></form>{% endif %}
+      </div>{% else %}<p class="muted">No reports.</p>{% endfor %}
+    </div>
+    <div class="cardx"><h2>New report</h2>
+      <form method="post" class="mt-3">{{ csrf_field() }}
+        <div class="form-grid">
+          <div><label for="kind">Type</label><select id="kind" class="form-select" name="kind">{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if form.get('kind') == k }}>{{ k.replace('_',' ') }}</option>{% endfor %}</select></div>
+          <div><label for="severity">Severity</label><select id="severity" class="form-select" name="severity">{% for s in ['low','medium','high'] %}<option value="{{ s }}" {{ 'selected' if (form.get('severity') or 'medium') == s }}>{{ s }}</option>{% endfor %}</select></div>
+          <div class="full"><label for="title">Title</label><input id="title" class="form-control" name="title" maxlength="120" value="{{ form.get('title','') }}" required></div>
+          <div class="full"><label for="description">Description</label><textarea id="description" class="form-control" name="description" rows="5" maxlength="2000" required placeholder="What happened, on which page, what you expected and, if possible, the plan or inference number.">{{ form.get('description','') }}</textarea></div>
+        </div>
+        <button class="btn btn-accent mt-3">Send report</button>
+      </form>
+      <div class="callout small mt-3"><strong>Response targets:</strong> high severity — same business day; medium — 2 business days; low and feedback — reviewed weekly.</div>
+    </div>
+  </div>
+</div>{% endblock %}

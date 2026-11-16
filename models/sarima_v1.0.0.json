@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "algorithm": "SARIMA",
+  "transform": "log",
+  "frequency": "MS",
+  "horizon": 6,
+  "trained_at": "2026-11-16T16:38:39+00:00",
+  "data_cutoff": "2026-08-01",
+  "data_fingerprint": "a5b534bc7b4f25df",
+  "selection": {
+    "rule": "Lowest validation MASE among ETS, SARIMA and Ridge (rolling origin, 6-month horizon)",
+    "selected": "sarima",
+    "metrics": {
+      "nombre": "SARIMA",
+      "validacion": {
+        "mae": 10.449,
+        "rmse": 19.453,
+        "mase": 3.372
+      },
+      "prueba": {
+        "mae": 5.456,
+        "rmse": 9.195,
+        "mase": 1.837
+      }
+    },
+    "baseline": {
+      "nombre": "Persistencia (referencia)",
+      "validacion": {
+        "mae": 12.781,
+        "rmse": 18.841,
+        "mase": 4.321
+      },
+      "prueba": {
+        "mae": 5.063,
+        "rmse": 9.498,
+        "mase": 1.715
+      }
+    },
+    "coverage_test_pct": {
+      "80": 91.7,
+      "95": 100.0
+    }
+  },
+  "series": {
+    "total": {
+      "order": [
+        1,
+        1,
+        1
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "aicc": -471.466,
+      "n_obs": 93,
+      "train_start": "2018-12-01",
+      "train_end": "2026-08-01",
+      "last_value": 164.2222
+    },
+    "fertilizantes": {
+      "order": [
+        1,
+        1,
+        1
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "aicc": -416.482,
+      "n_obs": 93,
+      "train_start": "2018-12-01",
+      "train_end": "2026-08-01",
+      "last_value": 194.4745
+    },
+    "plaguicidas": {
+      "order": [
+        2,
+        1,
+        0
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "aicc": -650.297,
+      "n_obs": 93,
+      "train_start": "2018-12-01",
+      "train_end": "2026-08-01",
+      "last_value": 115.8921
+    }
+  }
+}

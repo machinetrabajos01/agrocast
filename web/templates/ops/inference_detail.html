@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% block content %}
+{% set o = inf.output_payload %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Inference #{{ inf.id }} · {{ inf.created_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC</div><h1>{{ o.series_label }}</h1>
+    <p>Executed by {{ inf.user.full_name if inf.user else '—' }} with {{ inf.model_version.algorithm }} v{{ inf.model_version.version }} (data cut-off {{ inf.model_version.data_cutoff }}). Response time {{ inf.response_ms }} ms.</p></div>
+    <span class="rec rec-{{ inf.recommendation }}" style="font-size:1rem">{{ decision_labels[inf.recommendation] }}</span></div>
+  <div class="grid-2">
+    <div class="cardx"><h2>Forecast path</h2><div class="chart-wrap" style="height:260px"><canvas id="infChart"></canvas></div>
+      <div class="table-wrap mt-3"><table class="table-darkx" style="min-width:480px"><thead><tr><th>Month</th><th>h</th><th>Forecast</th><th>80% interval</th><th>95% interval</th></tr></thead><tbody>
+      {% for p in o.path %}<tr><td>{{ p.month }}</td><td>{{ p.horizon }}</td><td>{{ p.value }}</td><td>{{ p.lo80 }} – {{ p.hi80 }}</td><td>{{ p.lo95 }} – {{ p.hi95 }}</td></tr>{% endfor %}</tbody></table></div></div>
+    <div class="cardx"><h2>Interpretation</h2><p>{{ o.recommendation.reason }}</p>
+      <ul class="muted small"><li>Last observed value ({{ o.origin_month }}): {{ o.last_value }}</li><li>Forecast for {{ o.target_month }}: {{ o.predicted_value }} ({{ '%+.2f'|format(o.change_pct) }}%)</li><li>80% range of the change: {{ o.change_lo80_pct }}% to {{ o.change_hi80_pct }}%</li><li>Observations used: {{ o.observations_used }}</li></ul>
+      <h3 class="h6 mt-3">Input stored</h3><pre class="codebox json">{{ inf.input_payload|tojson(indent=2) }}</pre>
+      {% if inf.plan_id %}<a class="btn btn-ghost" href="{{ url_for('plan_detail', plan_id=inf.plan_id) }}">Open plan #{{ inf.plan_id }}</a>{% endif %}</div>
+  </div>
+</div>{% endblock %}
+{% block scripts %}<script>
+const o = {{ inf.output_payload|tojson }};
+renderChart('infChart', [o.origin_month, ...o.path.map(p => p.month)], [
+  {label: 'Forecast', data: [o.last_value, ...o.path.map(p => p.value)], borderColor: '#8bc34a', borderWidth: 2, tension: .2},
+  {label: '95% upper', data: [o.last_value, ...o.path.map(p => p.hi95)], borderColor: 'rgba(216,168,78,.5)', borderDash: [3,3], borderWidth: 1, pointRadius: 0},
+  {label: '80% upper', data: [o.last_value, ...o.path.map(p => p.hi80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0},
+  {label: '80% lower', data: [o.last_value, ...o.path.map(p => p.lo80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0},
+  {label: '95% lower', data: [o.last_value, ...o.path.map(p => p.lo95)], borderColor: 'rgba(216,168,78,.5)', borderDash: [3,3], borderWidth: 1, pointRadius: 0}
+]);
+</script>{% endblock %}

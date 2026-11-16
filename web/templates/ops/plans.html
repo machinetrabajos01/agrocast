@@ -1,0 +1,18 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Process 2 · Input purchase planning</div><h1>Purchase plans</h1>
+    <p>{% if scope == 'all' %}All plans registered in the system (read-only for analysts).{% else %}Plans of your farms. Each plan follows: draft → model evaluation → decision → purchase.{% endif %}</p></div>
+    {% if can('plans.manage_own') %}<a class="btn btn-accent" href="{{ url_for('plan_new') }}"><i class="bi bi-plus-lg"></i> New plan</a>{% endif %}</div>
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-sm {{ 'btn-accent' if not status else 'btn-ghost' }}" href="{{ url_for('plans', scope=scope) }}">All statuses</a>
+    {% for s in ['draft','evaluated','approved','deferred','purchased','cancelled'] %}<a class="btn btn-sm {{ 'btn-accent' if status == s else 'btn-ghost' }}" href="{{ url_for('plans', status=s, scope=scope) }}">{{ s }}</a>{% endfor %}
+    {% if can('plans.view_all') and can('plans.manage_own') %}<a class="btn btn-sm btn-ghost ms-auto" href="{{ url_for('plans', scope='mine' if scope == 'all' else 'all') }}">{{ 'Only my plans' if scope == 'all' else 'All users' }}</a>{% endif %}
+  </div>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>#</th><th>Plan</th>{% if scope == 'all' %}<th>Owner</th>{% endif %}<th>Farm</th><th>Category</th><th>Month</th><th>Items</th><th>Planned cost (COP)</th><th>Status</th><th>Recommendation</th><th>Decision</th></tr></thead><tbody>
+  {% for p in plans %}<tr><td>{{ p.id }}</td><td><a href="{{ url_for('plan_detail', plan_id=p.id) }}">{{ p.title }}</a></td>{% if scope == 'all' %}<td>{{ p.owner.full_name }}</td>{% endif %}<td>{{ p.farm.name }}</td><td>{{ category_labels[p.category] }}</td><td>{{ p.planned_month.strftime('%Y-%m') }}</td><td>{{ p.items|length }}</td><td>{{ '{:,.0f}'.format(p.planned_cost) }}</td>
+    <td><span class="status status-{{ p.status }}">{{ p.status }}</span></td>
+    <td>{% if p.recommendation %}<span class="rec rec-{{ p.recommendation }}">{{ decision_labels[p.recommendation] }}</span>{% else %}—{% endif %}</td>
+    <td>{{ decision_labels[p.decision] if p.decision else '—' }}</td></tr>
+  {% else %}<tr><td colspan="11" class="muted">No plans match this filter.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>{% endblock %}

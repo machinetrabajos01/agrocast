@@ -1,86 +1,120 @@
-# AGROCAST — Agricultural Price Intelligence
+# AGROCAST — Agricultural Input Purchase Planning
 
-Professional Flask platform for an academic machine-learning project focused on six-month agricultural input price forecasting in Colombia.
+Web information system for producers and technical teams in Colombia. It manages farms and input
+purchase plans and evaluates every plan with the SARIMA model selected in Activity 1, which forecasts
+the official UPRA agricultural input price index six months ahead.
 
-## What changed in this version
+- Public homepage with the project documentation (problem, objectives, CRISP-ML(Q), models, system design).
+- Registration, login and logout; passwords stored as salted scrypt hashes; CSRF protection on every form.
+- Three roles enforced on the server: **producer**, **analyst** and **admin**.
+- Persistent PostgreSQL database (Supabase, schema `agrocast`).
+- Complete purchase workflow: farm → plan → products priced with SIPSA-I → model evaluation →
+  decision → purchase with actual prices → closed.
+- Server-side inference with a versioned model artifact, inference history (date, user, input,
+  result, model version, response time) and monitoring (forecast vs actual, drift checks, errors).
 
-- Professional AgriTech/SaaS visual identity.
-- Public landing page separated from the private intelligent platform.
-- Dedicated Project menu: Problem & Objectives, CRISP-ML(Q), Documentation.
-- Dedicated Models menu: Overview, ETS, SARIMA and Ridge Regression.
-- Each model has its own explanation, real evaluation metrics and implementation evidence.
-- Intelligent Platform separated into dashboard, buying signals, market views and price evolution.
-- Forecast & Monitoring separated into six-month forecast, alerts, reports and model performance.
-- Flask backend connects the UI to the existing real forecasting pipeline and processed datasets.
-- Local academic demo login works without requiring Supabase for the classroom demonstration.
-- Existing Supabase migrations and data pipeline are preserved for later integration.
+Course: Machine Learning · Systems Engineering · University of Cundinamarca, Chía extension.
 
-## Academic demo login
+## Repository structure
 
-Email: `demo@agrocast.local`
+```text
+app.py                     Flask entry point, public pages and market views
+agrosys/                   information system
+  db.py                    SQLAlchemy data model
+  security.py              authentication, permission matrix, CSRF
+  services.py              business rules, inference + history, monitoring, event log
+  views_auth.py            register / login / logout / user administration
+  views_ops.py             farms, purchase plans, decisions, history, incidents
+  views_monitor.py         index records, forecast lab, API, monitoring, indicators, model versions, logs
+  seed.py                  flask CLI: init-db, seed, create-user
+src/                       Activity 1 pipeline (ingestion, preparation, models, evaluation)
+  train_model.py           packages the selected SARIMA as models/sarima_v<version>.joblib
+  inference.py             server-side inference, recommendation rule, drift check
+models/                    versioned model artifacts and model cards
+supabase/migrations/       database schema (public = pipeline results, agrocast = information system)
+supabase/app_role.example.sql   least-privilege login role for the server
+web/templates, web/static  user interface
+tests/                     pipeline tests and information system integration tests
+docs/                      technical manual, user manual, training guide, support and monitoring procedures
+render.yaml                deployment blueprint
+```
 
-Password: `Agro2026!`
+## Local setup
 
-Change these values with `DEMO_EMAIL`, `DEMO_PASSWORD` and `FLASK_SECRET_KEY` environment variables before any real deployment.
-
-## Run locally
+Requirements: Python 3.13.
 
 ```bash
 python -m venv venv
-# Windows PowerShell
-.\\venv\\Scripts\\Activate.ps1
+venv\Scripts\activate            # Windows  (source venv/bin/activate on Linux/macOS)
 pip install -r requirements.txt
-python app.py
+copy .env.example .env           # then edit the values
 ```
 
-Open `http://127.0.0.1:5000`.
+### Option A — local SQLite database (quick start)
 
-## Run the real modeling pipeline
+Leave `DATABASE_URL` empty in `.env`.
 
-The original project engine remains under `src/`. To regenerate the processed results with the files already included:
+```bash
+flask --app app seed                                   # creates tables and loads index, prices and model version
+flask --app app create-user --email admin@example.com --name "Admin" --role admin
+flask --app app run
+```
+
+### Option B — Supabase PostgreSQL (production)
+
+1. Apply the migrations in `supabase/migrations/` (the last one creates the `agrocast` schema):
+   `supabase db push` or run the SQL files in the Supabase SQL editor.
+2. Create the server role with `supabase/app_role.example.sql` (change the password first).
+3. Set `DATABASE_URL` in `.env`:
+   `postgresql+psycopg://agrocast_app.<project-ref>:<password>@aws-1-us-east-1.pooler.supabase.com:5432/postgres`
+4. Run `flask --app app seed` and create the administrator with `flask --app app create-user`.
+
+## Tests
 
 ```bash
 python -m pytest
-python -m src.pipeline --sin-preparar
 ```
 
-For a fresh source download, when the source files and internet access are available:
+`tests/test_system.py` uses a temporary SQLite database and checks protected routes, CSRF, role
+escalation on registration, the complete purchase workflow, business rules, the inference API and
+administrator restrictions.
 
-```bash
-python -m src.pipeline --actualizar-fuentes
-```
+## Model
 
-The web application reads the resulting `reports/resultados.json` and processed CSV files.
+The production model is SARIMA (lowest validation MASE among ETS, SARIMA and Ridge in Activity 1).
+`python -m src.train_model --version 1.0.0` repeats the specification search used in the evaluation
+(log transform, d = 1, AICc grid) on the full series and freezes the parameters. The web server only
+applies those parameters to the stored records, so the forecast of version 1.0.0 matches the one
+reported by the Activity 1 pipeline.
 
-## Models
+To publish a new version: run the pipeline, package a new version, `flask --app app seed`
+(registers it as inactive), deploy, and activate it in **Admin → Model versions**.
 
-- **ETS** — exponential smoothing state-space model.
-- **SARIMA** — autoregressive integrated moving average with optional seasonality.
-- **Ridge Regression** — direct regression by horizon with lagged index changes and external variables.
-- **Naive / Seasonal Naive** — reference baselines used for evaluation.
+## Deployment (Render)
 
-The selection rule is defined in the evaluation pipeline: candidates are compared on temporal validation and the final test block remains separate.
+The repository includes `render.yaml`.
 
-## Project structure
+1. In Render: **New → Blueprint**, select this repository (branch `main`).
+2. Set `DATABASE_URL` (the Supabase pooler URL above). `FLASK_SECRET_KEY` is generated automatically.
+3. Build: `pip install -r requirements.txt` · Start: `gunicorn app:app` · Health check: `/health`.
+4. After the first deploy, open `/health` — it must report `"database": "ok"`.
 
-```text
-agroinsumos-pronostico/
-├── app.py
-├── data/
-│   ├── raw/
-│   └── processed/
-├── src/
-├── models/
-├── reports/
-├── docs/
-├── supabase/
-├── tests/
-├── web/
-│   ├── templates/
-│   └── static/
-└── requirements.txt
-```
+## Configuration
 
-## Important academic limitation
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection (empty = local SQLite) |
+| `FLASK_SECRET_KEY` | session signing key (required in production) |
+| `SESSION_COOKIE_SECURE` | `1` when served over HTTPS |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | only for `src/load_supabase.py` (pipeline results) |
 
-The national index is an aggregate planning signal. It is not a guaranteed transaction price for a specific farmer, crop, region or commercial presentation. Product recommendations are decision-support rules and should be interpreted together with current quotations and local conditions.
+No secrets are stored in the repository. Test account credentials are delivered privately.
+
+## Documentation
+
+- [Technical manual](docs/technical_manual.md)
+- [User manual](docs/user_manual.md)
+- [Training guide](docs/training_guide.md)
+- [Support, incidents and feedback](docs/support_procedures.md)
+- [Monitoring and maintenance](docs/monitoring_maintenance.md)
+- Activity 1 methodology: `docs/metodologia_crisp_ml.md`, `docs/diccionario_datos.md`
