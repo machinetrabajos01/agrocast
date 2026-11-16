@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page" style="max-width:760px">
+  <div class="page-head"><div><div class="eyebrow">Process 1 · Production units</div><h1>Edit farm</h1></div></div>
+  <div class="cardx"><form method="post">{{ csrf_field() }}
+    <div class="form-grid">
+      <div class="full"><label for="name">Farm name</label><input id="name" class="form-control" name="name" value="{{ farm.name }}" maxlength="80" required></div>
+      <div><label for="department">Department</label><input id="department" class="form-control" name="department" value="{{ farm.department }}" maxlength="60" required></div>
+      <div><label for="municipality">Municipality</label><input id="municipality" class="form-control" name="municipality" value="{{ farm.municipality or '' }}" maxlength="60"></div>
+      <div><label for="main_crop">Main crop</label><input id="main_crop" class="form-control" name="main_crop" value="{{ farm.main_crop }}" maxlength="60" required></div>
+      <div><label for="area_ha">Area (hectares)</label><input id="area_ha" class="form-control" name="area_ha" type="number" step="0.01" min="0.01" value="{{ farm.area_ha }}" required></div>
+    </div>
+    <div class="d-flex gap-2 mt-3"><button class="btn btn-accent">Save changes</button><a class="btn btn-ghost" href="{{ url_for('farms') }}">Cancel</a></div>
+  </form></div>
+</div>{% endblock %}

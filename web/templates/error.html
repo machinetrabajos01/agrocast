@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container-page"><div class="cardx text-center py-5">
+  <div class="eyebrow">Error {{ code }}</div>
+  <h1 class="mt-2" style="font-family:'Space Grotesk'">{% if code == 403 %}Access denied{% elif code == 404 %}Page not found{% elif code == 429 %}Too many attempts{% elif code == 400 %}Invalid request{% else %}Something went wrong{% endif %}</h1>
+  <p class="muted">{% if code == 403 %}Your role does not have permission to use this function or view this record.{% else %}{{ message }}{% endif %}</p>
+  <a class="btn btn-accent mt-2" href="{{ url_for('dashboard') if current_user else url_for('home') }}">Go back</a>
+</div></div>{% endblock %}

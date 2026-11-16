@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{{ title or page_title }} · AGROCAST</title>
-  <meta name="description" content="AGROCAST — agricultural price intelligence, forecasting and decision support.">
+  <meta name="description" content="AGROCAST — agricultural input purchase planning supported by a forecasting model.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -18,16 +19,59 @@
   <nav class="topbar">
     <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark"><i class="bi bi-graph-up-arrow"></i></span><span>AGROCAST</span></a>
     <div class="desktop-nav">
-      <a href="{{ url_for('home') }}">Overview</a>
-      <div class="nav-drop"><button>Project <i class="bi bi-chevron-down"></i></button><div class="drop-menu"><a href="{{ url_for('problem') }}">Problem & Objectives</a><a href="{{ url_for('crisp') }}">CRISP-ML(Q)</a><a href="{{ url_for('documentation') }}">Documentation</a></div></div>
-      <div class="nav-drop"><button>Models <i class="bi bi-chevron-down"></i></button><div class="drop-menu"><a href="{{ url_for('models') }}">Model Overview</a><a href="{{ url_for('model_detail', model='ets') }}">ETS</a><a href="{{ url_for('model_detail', model='sarima') }}">SARIMA</a><a href="{{ url_for('model_detail', model='ridge') }}">Ridge Regression</a></div></div>
-      {% if logged_in %}<div class="nav-drop"><button>Intelligence <i class="bi bi-chevron-down"></i></button><div class="drop-menu"><a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('what_to_buy') }}">What to Buy Today</a><a href="{{ url_for('my_market') }}">My Market</a><a href="{{ url_for('cheapest_location') }}">Cheapest Location</a><a href="{{ url_for('price_evolution') }}">Price Evolution</a></div></div>
-      <div class="nav-drop"><button>Forecast & Monitoring <i class="bi bi-chevron-down"></i></button><div class="drop-menu"><a href="{{ url_for('six_month') }}">Six-Month Forecast</a><a href="{{ url_for('alerts') }}">Alerts</a><a href="{{ url_for('reports') }}">Reports</a><a href="{{ url_for('performance') }}">Model Performance</a></div></div>{% endif %}
+      <div class="nav-drop"><button>Project <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('home') }}">Overview</a>
+        <a href="{{ url_for('problem') }}">Problem & Objectives</a>
+        <a href="{{ url_for('crisp') }}">CRISP-ML(Q)</a>
+        <a href="{{ url_for('system_design') }}">System Design</a>
+        <a href="{{ url_for('documentation') }}">Documentation</a></div></div>
+      <div class="nav-drop"><button>Models <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('models') }}">Model Overview</a>
+        <a href="{{ url_for('model_detail', model='ets') }}">ETS</a>
+        <a href="{{ url_for('model_detail', model='sarima') }}">SARIMA (in production)</a>
+        <a href="{{ url_for('model_detail', model='ridge') }}">Ridge Regression</a></div></div>
+      {% if current_user %}
+      <div class="nav-drop"><button>Planning <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        {% if can('farms.manage_own') %}<a href="{{ url_for('farms') }}">Farms</a>{% endif %}
+        <a href="{{ url_for('plans') }}">Purchase Plans</a>
+        <a href="{{ url_for('history') }}">Inference History</a>
+        <a href="{{ url_for('incidents') }}">Support & Feedback</a></div></div>
+      <div class="nav-drop"><button>Market <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('six_month') }}">Six-Month Forecast</a>
+        <a href="{{ url_for('what_to_buy') }}">What to Buy Today</a>
+        <a href="{{ url_for('my_market') }}">Market by Category</a>
+        <a href="{{ url_for('cheapest_location') }}">Cheapest Location</a>
+        <a href="{{ url_for('price_evolution') }}">Price Evolution</a>
+        <a href="{{ url_for('alerts') }}">Product Alerts</a></div></div>
+      {% if can('monitoring.view') %}
+      <div class="nav-drop"><button>Analysis <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('forecast_lab') }}">Forecast Lab</a>
+        <a href="{{ url_for('index_records') }}">Index Records</a>
+        <a href="{{ url_for('monitoring') }}">Model Monitoring</a>
+        <a href="{{ url_for('indicators') }}">Indicators</a>
+        <a href="{{ url_for('performance') }}">Model Performance</a></div></div>
+      {% endif %}
+      {% if can('users.manage') %}
+      <div class="nav-drop"><button>Admin <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('admin_users') }}">Users & Roles</a>
+        <a href="{{ url_for('admin_models') }}">Model Versions</a>
+        <a href="{{ url_for('admin_logs') }}">Operational Log</a></div></div>
+      {% endif %}
+      {% endif %}
     </div>
-    <div class="nav-actions">{% if logged_in %}<a class="user-pill" href="{{ url_for('dashboard') }}"><i class="bi bi-person-circle"></i> {{ user_email }}</a><a class="btn btn-sm btn-outline-light" href="{{ url_for('logout') }}">Sign out</a>{% else %}<a class="btn btn-sm btn-accent" href="{{ url_for('login') }}">Open Platform <i class="bi bi-arrow-up-right"></i></a>{% endif %}</div>
+    <div class="nav-actions">
+      {% if current_user %}
+      <span class="user-pill"><i class="bi bi-person-circle"></i> {{ current_user.full_name }} <span class="role-badge role-{{ current_user.role }}">{{ current_user.role }}</span></span>
+      <form method="post" action="{{ url_for('logout') }}" class="m-0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-light">Sign out</button></form>
+      {% else %}
+      <a class="btn btn-sm btn-ghost" href="{{ url_for('register') }}">Create account</a>
+      <a class="btn btn-sm btn-accent" href="{{ url_for('login') }}">Sign in <i class="bi bi-arrow-up-right"></i></a>
+      {% endif %}
+    </div>
   </nav>
   <main>{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="container-fluid px-4 pt-3"><div class="alert alert-{{ category }} border-0">{{ message }}</div></div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main>
-  <footer class="footer"><div><strong>AGROCAST</strong><span> Agricultural Price Intelligence</span></div><div>Academic Machine Learning Project · CRISP-ML(Q)</div></footer>
+  <footer class="footer"><div><strong>AGROCAST</strong><span> Agricultural Input Purchase Planning</span></div><div>Machine Learning · University of Cundinamarca · CRISP-ML(Q)</div></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>

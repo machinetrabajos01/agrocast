@@ -1,0 +1,96 @@
+{% extends 'base.html' %}{% block content %}
+{% set inf = plan.last_inference %}
+{% set order = ['draft','evaluated','approved','purchased'] %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">Plan #{{ plan.id }} · {{ category_labels[plan.category] }} · {{ plan.farm.name }}</div><h1>{{ plan.title }}</h1>
+    <p>Purchase month <strong>{{ plan.planned_month.strftime('%B %Y') }}</strong> · Owner {{ plan.owner.full_name }} · <span class="status status-{{ plan.status }}">{{ plan.status }}</span></p></div>
+    {% if is_owner %}<div class="d-flex gap-2 flex-wrap">
+      {% if editable %}<a class="btn btn-ghost" href="{{ url_for('plan_edit', plan_id=plan.id) }}"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
+      {% if plan.is_open %}<form method="post" action="{{ url_for('plan_cancel', plan_id=plan.id) }}" onsubmit="return confirm('Cancel this plan?')">{{ csrf_field() }}<button class="btn btn-danger-ghost">Cancel plan</button></form>{% endif %}
+      {% if plan.status in ('draft','cancelled') %}<form method="post" action="{{ url_for('plan_delete', plan_id=plan.id) }}" onsubmit="return confirm('Delete this plan permanently?')">{{ csrf_field() }}<button class="btn btn-danger-ghost"><i class="bi bi-trash"></i></button></form>{% endif %}
+    </div>{% endif %}</div>
+
+  <div class="steps">
+    <div class="step {{ 'done' if plan.items else 'current' }}">1 · Add products</div>
+    <div class="step {{ 'done' if plan.status in ('evaluated','approved','deferred','purchased') else ('current' if plan.items else '') }}">2 · Model evaluation</div>
+    <div class="step {{ 'done' if plan.status in ('approved','deferred','purchased') else ('current' if plan.status == 'evaluated' else '') }}">3 · Decision</div>
+    <div class="step {{ 'current' if plan.status == 'approved' else ('done' if plan.status == 'purchased' else '') }}">4 · Register purchase</div>
+    <div class="step {{ 'done' if plan.status == 'purchased' else '' }}">5 · Compare with actual</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="cardx">
+      <div class="d-flex justify-content-between"><h2>Products</h2><div class="text-end"><div class="small-note">Planned cost</div><div class="big-number">{{ '{:,.0f}'.format(plan.planned_cost) }} <span class="small-note">COP</span></div></div></div>
+      <div class="table-wrap mt-2"><table class="table-darkx" style="min-width:560px"><thead><tr><th>Product</th><th>Qty</th><th>Unit price</th><th>Subtotal</th>{% if plan.status == 'purchased' %}<th>Actual price</th>{% endif %}<th></th></tr></thead><tbody>
+      {% for it in plan.items %}<tr><td>{{ it.product.product }}<div class="small-note">{{ it.product.presentation }} · SIPSA {{ it.product.price_month.strftime('%Y-%m') }}</div></td><td>{{ it.quantity|float|round(2) }}</td><td>{{ '{:,.0f}'.format(it.unit_price|float) }}</td><td>{{ '{:,.0f}'.format(it.quantity|float * it.unit_price|float) }}</td>
+        {% if plan.status == 'purchased' %}<td>{{ '{:,.0f}'.format(it.actual_unit_price|float) }}</td>{% endif %}
+        <td>{% if editable and is_owner %}<form method="post" action="{{ url_for('plan_item_delete', plan_id=plan.id, item_id=it.id) }}">{{ csrf_field() }}<button class="btn btn-sm btn-danger-ghost" title="Remove"><i class="bi bi-x"></i></button></form>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="6" class="muted">No products yet.</td></tr>{% endfor %}</tbody></table></div>
+      {% if editable and is_owner %}
+      <form method="post" action="{{ url_for('plan_item_add', plan_id=plan.id) }}" class="mt-3">{{ csrf_field() }}
+        <div class="form-grid"><div><label for="product_price_id">Product (latest SIPSA-I price)</label><select id="product_price_id" class="form-select" name="product_price_id">{% for p in products %}<option value="{{ p.id }}">{{ p.product }} · {{ p.presentation }} — {{ '{:,.0f}'.format(p.price|float) }} COP</option>{% endfor %}</select></div>
+        <div><label for="quantity">Quantity (units of the presentation)</label><input id="quantity" class="form-control" name="quantity" type="number" min="0.01" step="0.01" required></div></div>
+        <button class="btn btn-ghost mt-2"><i class="bi bi-plus"></i> Add or update product</button>
+      </form>{% endif %}
+    </div>
+
+    <div class="cardx">
+      <div class="d-flex justify-content-between align-items-start"><div><div class="eyebrow">Machine learning support</div><h2 class="mt-1">Model evaluation</h2></div>
+        {% if editable and is_owner and can('inference.plan') %}<form method="post" action="{{ url_for('plan_evaluate', plan_id=plan.id) }}">{{ csrf_field() }}<button class="btn btn-accent" {{ 'disabled' if not plan.items }}><i class="bi bi-cpu"></i> {{ 'Re-evaluate' if inf else 'Evaluate with model' }}</button></form>{% endif %}</div>
+      {% if inf and projection %}{% set o = inf.output_payload %}
+        <div class="d-flex align-items-center gap-3 mt-3"><span class="rec rec-{{ inf.recommendation }}" style="font-size:1rem">{{ decision_labels[inf.recommendation] }}</span><span class="small-note">Confidence: {{ o.recommendation.confidence }} · SARIMA v{{ inf.model_version.version }} · {{ inf.created_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
+        {% if projection.stale %}<div class="alert alert-warning border-0 mt-3 small">The active model version changed after this evaluation. Evaluate again before deciding.</div>{% endif %}
+        <p class="mt-3">{{ o.recommendation.reason }}</p>
+        <div class="kpi-grid three mb-2" style="gap:10px">
+          <div class="kpi"><div class="label">Index change</div><div class="value {{ 'negative' if o.change_pct > 0 else 'positive' }}">{{ '%+.1f'|format(o.change_pct) }}%</div><div class="note">{{ o.origin_month }} → {{ o.target_month }}</div></div>
+          <div class="kpi"><div class="label">Projected cost</div><div class="value">{{ '{:,.0f}'.format(projection.projected_cost) }}</div><div class="note">{{ '{:+,.0f}'.format(projection.difference) }} COP vs today</div></div>
+          <div class="kpi"><div class="label">80% range</div><div class="value" style="font-size:1.05rem">{{ '{:,.0f}'.format(projection.lo_cost) }}<br>{{ '{:,.0f}'.format(projection.hi_cost) }}</div><div class="note">COP</div></div>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="planChart"></canvas></div>
+        <details class="mt-3"><summary class="small muted">How to read this result</summary>
+          <p class="small muted mt-2"><strong>Meaning:</strong> the model forecasts the {{ o.series_label|lower }} (UPRA, January 2021 = 100) {{ o.horizon }} month(s) after the latest official month. The change is applied to today's SIPSA-I prices to estimate the cost of the plan in the purchase month.<br>
+          <strong>Practical use:</strong> rises of 3% or more suggest buying in advance; falls of 3% or more suggest deferring; smaller changes keep the original date.<br>
+          <strong>Limitations:</strong> the index is a national average, not the price of a specific shop or region. It does not anticipate sudden shocks (exchange rate, international urea prices, regulations) and the interval widens with the horizon. In the final test block SARIMA did not beat the persistence baseline, so the recommendation supports, but does not replace, supplier quotes.</p></details>
+      {% else %}<p class="muted mt-3">Add products and run the evaluation. The server applies the SARIMA model selected in Activity 1 to the official index records stored in the system and stores the result in the inference history.</p>{% endif %}
+    </div>
+  </div>
+
+  {% if is_owner and plan.status == 'evaluated' and inf %}
+  <div class="cardx mt-3"><h2>Record the decision</h2><p class="muted">Approving keeps the purchase and moves the plan to execution; deferring keeps it open to be evaluated again later. If your decision differs from the model, explain why.</p>
+    <form method="post" action="{{ url_for('plan_decide', plan_id=plan.id) }}">{{ csrf_field() }}
+      <div class="form-grid"><div><label for="decision">Decision</label><select id="decision" class="form-select" name="decision">{% for d in decisions %}<option value="{{ d }}" {{ 'selected' if d == plan.recommendation }}>{{ decision_labels[d] }}{{ ' (model recommendation)' if d == plan.recommendation }}</option>{% endfor %}</select></div>
+      <div><label for="decision_note">Note</label><input id="decision_note" class="form-control" name="decision_note" maxlength="400" placeholder="Required when you do not follow the model"></div></div>
+      <button class="btn btn-accent mt-3">Save decision</button></form></div>
+  {% endif %}
+
+  {% if plan.decision %}<div class="callout mt-3"><strong>Decision:</strong> {{ decision_labels[plan.decision] }} {% if plan.decision == plan.recommendation %}(follows the model){% else %}(differs from the model){% endif %}{% if plan.decision_note %} — “{{ plan.decision_note }}”{% endif %}</div>{% endif %}
+
+  {% if is_owner and plan.status == 'approved' %}
+  <div class="cardx mt-3"><h2>Register the purchase</h2><p class="muted">Enter the unit price actually paid. It is stored to compare planned, projected and actual costs.</p>
+    <form method="post" action="{{ url_for('plan_purchase', plan_id=plan.id) }}">{{ csrf_field() }}
+      <div class="form-grid">{% for it in plan.items %}<div><label for="actual_{{ it.id }}">{{ it.product.product }} ({{ it.product.presentation }})</label><input id="actual_{{ it.id }}" class="form-control" type="number" min="1" step="1" name="actual_{{ it.id }}" value="{{ it.unit_price|int }}" required></div>{% endfor %}</div>
+      <button class="btn btn-accent mt-3"><i class="bi bi-bag-check"></i> Close as purchased</button></form></div>
+  {% endif %}
+
+  {% if plan.status == 'purchased' and plan.actual_cost is not none %}
+  <div class="kpi-grid three mt-3">
+    <div class="kpi"><div class="label">Planned cost</div><div class="value">{{ '{:,.0f}'.format(plan.planned_cost) }}</div></div>
+    <div class="kpi"><div class="label">Projected by the model</div><div class="value">{{ '{:,.0f}'.format(projection.projected_cost) if projection else '—' }}</div></div>
+    <div class="kpi"><div class="label">Actual cost</div><div class="value">{{ '{:,.0f}'.format(plan.actual_cost) }}</div><div class="note">{{ '%+.1f'|format((plan.actual_cost / plan.planned_cost - 1) * 100) }}% vs planned</div></div>
+  </div>{% endif %}
+
+  <div class="cardx mt-3"><h2>Evaluation history</h2>
+    <div class="table-wrap mt-2"><table class="table-darkx"><thead><tr><th>Date</th><th>User</th><th>Series</th><th>Horizon</th><th>Index change</th><th>Recommendation</th><th>Model version</th><th>Response (ms)</th></tr></thead><tbody>
+    {% for h in history %}<tr><td><a href="{{ url_for('inference_detail', inference_id=h.id) }}">{{ h.created_at.strftime('%Y-%m-%d %H:%M') }}</a></td><td>{{ h.user.email if h.user else '—' }}</td><td>{{ h.series }}</td><td>{{ h.horizon }}</td><td>{{ '%+.2f'|format(h.change_pct|float) }}%</td><td><span class="rec rec-{{ h.recommendation }}">{{ decision_labels[h.recommendation] }}</span></td><td>{{ h.model_version.version }}</td><td>{{ h.response_ms }}</td></tr>
+    {% else %}<tr><td colspan="8" class="muted">The plan has not been evaluated yet.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endblock %}
+{% block scripts %}{% if plan.last_inference %}<script>
+const o = {{ plan.last_inference.output_payload|tojson }};
+const labels = [o.origin_month, ...o.path.map(p => p.month)];
+renderChart('planChart', labels, [
+  {label: 'Forecast', data: [o.last_value, ...o.path.map(p => p.value)], borderColor: '#8bc34a', borderWidth: 2, pointRadius: 2, tension: .2},
+  {label: '80% upper', data: [o.last_value, ...o.path.map(p => p.hi80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0},
+  {label: '80% lower', data: [o.last_value, ...o.path.map(p => p.lo80)], borderColor: 'rgba(120,168,217,.6)', borderDash: [4,4], borderWidth: 1, pointRadius: 0}
+]);
+</script>{% endif %}{% endblock %}

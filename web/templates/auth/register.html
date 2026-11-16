@@ -1,0 +1,18 @@
+{% extends 'base.html' %}{% block content %}
+<div class="auth" style="max-width:520px"><div class="auth-card">
+  <div class="eyebrow">New account</div>
+  <h1 class="mt-2" style="font-family:'Space Grotesk'">Create a producer account</h1>
+  <p class="muted">Producers register farms, build input purchase plans and evaluate them with the forecasting model.</p>
+  <form method="post" class="mt-4" novalidate>{{ csrf_field() }}
+    <div class="mb-3"><label for="full_name">Full name</label><input id="full_name" class="form-control" name="full_name" value="{{ form.get('full_name','') }}" maxlength="80" required></div>
+    <div class="mb-3"><label for="email">Email</label><input id="email" class="form-control" type="email" name="email" value="{{ form.get('email','') }}" maxlength="120" required></div>
+    <div class="mb-3"><label for="department">Department (optional)</label><input id="department" class="form-control" name="department" value="{{ form.get('department','') }}" maxlength="60" placeholder="Cundinamarca"></div>
+    <div class="form-grid mb-3">
+      <div><label for="password">Password</label><input id="password" class="form-control" type="password" name="password" autocomplete="new-password" required></div>
+      <div><label for="confirm">Confirm password</label><input id="confirm" class="form-control" type="password" name="confirm" autocomplete="new-password" required></div>
+    </div>
+    <p class="small-note">Minimum 8 characters, including letters and numbers. Passwords are stored as salted scrypt hashes.</p>
+    <button class="btn btn-accent w-100 py-2">Create account</button>
+  </form>
+  <p class="small muted mt-4 mb-0">Already registered? <a class="positive" href="{{ url_for('login') }}">Sign in</a>.</p>
+</div></div>{% endblock %}
