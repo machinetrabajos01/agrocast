@@ -135,14 +135,22 @@ def api_results():
 
 @app.route("/health")
 def health():
+    reason = None
     try:
         db.session.execute(db.text("select 1"))
         database = "ok"
-    except Exception:
+    except Exception as exc:
         db.session.rollback()
         database = "unavailable"
-    return jsonify({"status": "ok" if database == "ok" else "degraded", "database": database,
-                    "results_available": bool(load_results())}), 200 if database == "ok" else 503
+        # Short diagnostic without credentials or host names.
+        message = str(getattr(exc, "orig", exc)).splitlines()[0]
+        reason = f"{type(getattr(exc, 'orig', exc)).__name__}: {message.split('@')[-1].split('FATAL:')[-1].strip()[:120]}"
+        app.logger.error("Health check failed: %s", reason)
+    body = {"status": "ok" if database == "ok" else "degraded", "database": database,
+            "results_available": bool(load_results())}
+    if reason:
+        body["reason"] = reason
+    return jsonify(body), 200 if database == "ok" else 503
 
 
 # ---------------------------------------------------------------- authenticated workspace
