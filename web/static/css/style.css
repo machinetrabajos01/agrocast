@@ -24,3 +24,19 @@ pre.json{max-height:320px}
 .btn-ghost{color:var(--text)}.btn-ghost:hover,.btn-ghost:focus{color:var(--text);border-color:#46603f;background:var(--surface2)}
 .btn-ghost:disabled{color:var(--muted)}
 .alert-success{background:#16301b;color:#cdeec0}.alert-danger{background:#3a1717;color:#ffc9c9}.alert-warning{background:#3a2e14;color:#f6dfaa}.alert-info{background:#14283a;color:#cfe3f7}
+
+/* CRISP-ML phase pages */
+.phase-tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:0 0 18px}
+.phase-tab{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);text-decoration:none;font-size:.82rem;line-height:1.2}
+.phase-tab small{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.phase-tab i{font-size:1.1rem;color:var(--green)}
+.phase-tab:hover{border-color:#3b4a3e;color:var(--text)}
+.phase-tab.active{border-color:var(--green);background:#16200f;color:var(--text)}
+.phase-pager{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+.figure-img{display:block;width:100%;height:auto;border-radius:12px;background:#fff;padding:8px}
+.row-highlight td{background:#16200f}
+.tag-warn{background:#2c2312;color:var(--gold);border-color:#4a3a1c}
+.demo-form .form-control,.demo-form .form-select{background:var(--surface2);border-color:var(--line);color:var(--text)}
+@media(max-width:1000px){.phase-tabs{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.phase-tabs{grid-template-columns:repeat(2,1fr)}.phase-pager{flex-direction:column}}
+.grid-2>*{min-width:0}

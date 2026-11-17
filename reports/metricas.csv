@@ -6,7 +6,7 @@ naive,validacion,12.7807,18.841,4.3213,240.0,0
 ridge,prueba,6.4019,9.6103,2.138,72.0,0
 ridge,validacion,14.1184,21.0786,4.42,240.0,0
 sarima,prueba,5.4557,9.1949,1.8366,72.0,0
-sarima,validacion,10.4493,19.4532,3.3722,240.0,0
+sarima,validacion,10.2972,18.9072,3.3241,240.0,0
 snaive,prueba,10.7059,12.4264,3.5311,72.0,0
 snaive,validacion,48.8267,58.057,15.6771,240.0,0
 ets,prueba,1.0345,1.229,0.3396,12.0,1
@@ -51,12 +51,12 @@ sarima,prueba,4.309,6.7835,1.4566,12.0,3
 sarima,prueba,6.6192,10.1298,2.2379,12.0,4
 sarima,prueba,8.6037,12.4697,2.9003,12.0,5
 sarima,prueba,9.5982,13.7822,3.2281,12.0,6
-sarima,validacion,2.4734,4.4819,0.8142,40.0,1
-sarima,validacion,5.939,9.8484,1.9427,40.0,2
-sarima,validacion,9.1521,15.0342,2.989,40.0,3
-sarima,validacion,11.9633,19.5708,3.8692,40.0,4
-sarima,validacion,14.7581,24.5566,4.7129,40.0,5
-sarima,validacion,18.4101,30.6824,5.9053,40.0,6
+sarima,validacion,2.3903,4.3198,0.7881,40.0,1
+sarima,validacion,5.7855,9.4826,1.8945,40.0,2
+sarima,validacion,9.0116,14.5971,2.9446,40.0,3
+sarima,validacion,11.7993,18.968,3.8175,40.0,4
+sarima,validacion,14.5815,23.8637,4.6569,40.0,5
+sarima,validacion,18.215,29.8995,5.8433,40.0,6
 snaive,prueba,8.346,8.7319,2.7135,12.0,1
 snaive,prueba,8.8877,9.4062,2.8992,12.0,2
 snaive,prueba,10.0244,11.3131,3.2971,12.0,3

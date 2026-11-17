@@ -1,0 +1,278 @@
+{
+  "data_type": "SIMULATED",
+  "generated_at": "2026-11-17T03:10:50+00:00",
+  "model_version": "1.1.0",
+  "data_cutoff": "2026-08",
+  "simulation": {
+    "noise_sd_log": 0.01,
+    "shock": "+12 % from the third simulated month",
+    "seed": 20261116
+  },
+  "rules": {
+    "ape_limit_pct": 5.0,
+    "consecutive_misses": 2,
+    "drift": "alert if |z| > 3 or volatility ratio > 2 or < 0.33; warning if |z| > 2 or ratio > 1.5"
+  },
+  "scenarios": {
+    "stable": {
+      "months": 6,
+      "mape_pct": 1.27,
+      "coverage_80_pct": 83.3,
+      "final_drift_status": "ok",
+      "incidents": [],
+      "log": [
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2026-09",
+          "model_version": "1.1.0",
+          "predicted": 159.351,
+          "lo80": 155.731,
+          "hi80": 163.055,
+          "simulated_actual": 158.543,
+          "ape_pct": 0.51,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.022,
+          "volatility_ratio": 1.032,
+          "compute_ms": 17.0,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2026-10",
+          "model_version": "1.1.0",
+          "predicted": 154.39,
+          "lo80": 150.883,
+          "hi80": 157.978,
+          "simulated_actual": 156.892,
+          "ape_pct": 1.62,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.134,
+          "volatility_ratio": 1.044,
+          "compute_ms": 16.1,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2026-11",
+          "model_version": "1.1.0",
+          "predicted": 156.261,
+          "lo80": 152.712,
+          "hi80": 159.893,
+          "simulated_actual": 152.366,
+          "ape_pct": 2.49,
+          "inside_80": false,
+          "drift_status": "ok",
+          "drift_z": -0.368,
+          "volatility_ratio": 1.094,
+          "compute_ms": 16.9,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2026-12",
+          "model_version": "1.1.0",
+          "predicted": 148.351,
+          "lo80": 144.982,
+          "hi80": 151.8,
+          "simulated_actual": 151.502,
+          "ape_pct": 2.12,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.417,
+          "volatility_ratio": 1.097,
+          "compute_ms": 15.7,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2027-01",
+          "model_version": "1.1.0",
+          "predicted": 151.58,
+          "lo80": 148.137,
+          "hi80": 155.103,
+          "simulated_actual": 150.74,
+          "ape_pct": 0.55,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.468,
+          "volatility_ratio": 1.099,
+          "compute_ms": 15.4,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "stable",
+          "month": "2027-02",
+          "model_version": "1.1.0",
+          "predicted": 150.008,
+          "lo80": 146.601,
+          "hi80": 153.495,
+          "simulated_actual": 149.5,
+          "ape_pct": 0.34,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.675,
+          "volatility_ratio": 1.098,
+          "compute_ms": 15.9,
+          "actions": [
+            "none"
+          ]
+        }
+      ]
+    },
+    "shock": {
+      "months": 6,
+      "mape_pct": 3.7,
+      "coverage_80_pct": 66.7,
+      "final_drift_status": "ok",
+      "incidents": [
+        "2026-12: performance incident: review retraining"
+      ],
+      "log": [
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2026-09",
+          "model_version": "1.1.0",
+          "predicted": 159.351,
+          "lo80": 155.731,
+          "hi80": 163.055,
+          "simulated_actual": 158.543,
+          "ape_pct": 0.51,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.022,
+          "volatility_ratio": 1.032,
+          "compute_ms": 15.7,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2026-10",
+          "model_version": "1.1.0",
+          "predicted": 154.39,
+          "lo80": 150.883,
+          "hi80": 157.978,
+          "simulated_actual": 156.892,
+          "ape_pct": 1.62,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": -0.134,
+          "volatility_ratio": 1.044,
+          "compute_ms": 17.5,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2026-11",
+          "model_version": "1.1.0",
+          "predicted": 156.261,
+          "lo80": 152.712,
+          "hi80": 159.893,
+          "simulated_actual": 170.65,
+          "ape_pct": 9.21,
+          "inside_80": false,
+          "drift_status": "ok",
+          "drift_z": 0.731,
+          "volatility_ratio": 1.283,
+          "compute_ms": 19.2,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:50+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2026-12",
+          "model_version": "1.1.0",
+          "predicted": 184.882,
+          "lo80": 180.683,
+          "hi80": 189.179,
+          "simulated_actual": 169.682,
+          "ape_pct": 8.22,
+          "inside_80": false,
+          "drift_status": "ok",
+          "drift_z": 0.683,
+          "volatility_ratio": 1.29,
+          "compute_ms": 16.5,
+          "actions": [
+            "performance incident: review retraining"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:51+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2027-01",
+          "model_version": "1.1.0",
+          "predicted": 165.827,
+          "lo80": 162.06,
+          "hi80": 169.682,
+          "simulated_actual": 168.829,
+          "ape_pct": 1.81,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": 0.631,
+          "volatility_ratio": 1.296,
+          "compute_ms": 16.4,
+          "actions": [
+            "none"
+          ]
+        },
+        {
+          "logged_at": "2026-11-17T03:10:51+00:00",
+          "data_type": "SIMULATED",
+          "scenario": "shock",
+          "month": "2027-02",
+          "model_version": "1.1.0",
+          "predicted": 168.88,
+          "lo80": 165.044,
+          "hi80": 172.806,
+          "simulated_actual": 167.44,
+          "ape_pct": 0.85,
+          "inside_80": true,
+          "drift_status": "ok",
+          "drift_z": 0.424,
+          "volatility_ratio": 1.31,
+          "compute_ms": 17.5,
+          "actions": [
+            "none"
+          ]
+        }
+      ]
+    }
+  }
+}

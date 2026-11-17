@@ -1,0 +1,84 @@
+{% extends 'crisp/_layout.html' %}
+{% block lead %}The saved model and its preprocessing, a working demonstration that accepts new inputs, the documentation of inputs, outputs and dependencies, user instructions, the integration with the information system and the support procedures.{% endblock %}
+{% block phase %}
+<div class="cardx" id="demo"><h2>Model demonstration</h2>
+  <p class="muted small">Choose an index series and a horizon. Optionally type the values of the next months (for example, a figure UPRA has just published, or a scenario you want to test); the model updates its forecast origin with them. The official series ends in {{ cutoff.strftime('%Y-%m') }}. Model version {{ versions[-1] }}. Requests are logged without personal data.</p>
+  <form method="post" action="{{ url_for('crisp_demo') }}#demo" class="demo-form">{{ csrf_field() }}
+    <div class="row g-3">
+      <div class="col-md-5"><label class="form-label" for="series">Index series</label>
+        <select class="form-select" id="series" name="series">{% for k, label in series_labels.items() %}<option value="{{ k }}" {{ 'selected' if form.get('series') == k }}>{{ label }} (last official value {{ last_values[k] }})</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label" for="horizon">Horizon (months)</label>
+        <select class="form-select" id="horizon" name="horizon">{% for h in range(1, 7) %}<option value="{{ h }}" {{ 'selected' if (form.get('horizon') or '6') == h|string }}>{{ h }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="row g-3 mt-1">
+      {% for m in next_months %}<div class="col-md-3"><label class="form-label" for="new_{{ loop.index0 }}">New value {{ m.strftime('%Y-%m') }} (optional)</label>
+        <input class="form-control" id="new_{{ loop.index0 }}" name="new_{{ loop.index0 }}" inputmode="decimal" placeholder="e.g. 163.5" value="{{ form.get('new_' ~ loop.index0, '') }}"></div>{% endfor %}
+    </div>
+    <p class="small muted mt-2">Months must be filled in order. Values outside 50%–200% of the last official value are rejected.</p>
+    <button class="btn btn-accent mt-1"><i class="bi bi-cpu"></i> Run forecast</button>
+  </form>
+  {% if demo %}{% set res = demo.result %}
+  <div class="grid-2 mt-4">
+    <div>
+      <div class="kpi-grid three">
+        <div class="kpi"><div class="label">Forecast {{ res.target_month }}</div><div class="value">{{ res.predicted_value }}</div><div class="note">Origin {{ res.origin_month }} ({{ res.last_value }})</div></div>
+        <div class="kpi"><div class="label">Expected change</div><div class="value">{{ '%+.1f'|format(res.change_pct) }}%</div><div class="note">80%: {{ '%+.1f'|format(res.change_lo80_pct) }}% to {{ '%+.1f'|format(res.change_hi80_pct) }}%</div></div>
+        <div class="kpi"><div class="label">Recommendation</div><div class="value" style="font-size:1.2rem">{{ demo.decision.label }}</div><div class="note">Confidence: {{ demo.decision.confidence }}</div></div>
+      </div>
+      <p class="small mt-2">{{ demo.decision.reason }}</p>
+      <p class="small muted">{{ res.series_label }} · SARIMA v{{ res.model_version }} · {{ res.observations_used }} observations{% if demo.new_values %} ({{ demo.new_values|length }} typed by the user){% endif %} · computed in {{ res.compute_ms }} ms</p>
+    </div>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Month</th><th>Forecast</th><th>80% range</th><th>95% range</th></tr></thead><tbody>
+      {% for p in res.path %}<tr><td>{{ p.month }}</td><td>{{ p.value }}</td><td>{{ p.lo80 }} – {{ p.hi80 }}</td><td>{{ p.lo95 }} – {{ p.hi95 }}</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Saved model and preprocessing</h2><ul class="muted small">
+    <li><code>models/sarima_v{{ versions[-1] }}.joblib</code>: specification and frozen parameters for the three series, training cut-off, data fingerprint, preprocessing steps and the reference distribution used by the drift check.</li>
+    <li><code>models/sarima_v{{ versions[-1] }}.json</code>: model card (selection rule, metrics, coverage, orders and AICc).</li>
+    <li>Versions available: {{ versions|join(', ') }}. The administrator activates a version in the information system; every inference stores the version used.</li>
+    <li>Preprocessing at inference (<code>src/inference.py</code>) repeats the training steps: monthly frequency, gap and range checks, logarithm, back-transformation with the exponential.</li>
+    <li>Rebuild: <code>python -m src.pipeline</code>, then <code>python -m src.train_model --version {{ versions[-1] }}</code>.</li></ul></div>
+  <div class="cardx"><h2>Inputs, outputs and dependencies</h2>
+    <div class="table-wrap"><table class="table-darkx"><tbody>
+      <tr><td><strong>Input</strong></td><td>Series (total, fertilizer or pesticide), horizon 1–6, monthly history of at least 36 consecutive positive values</td></tr>
+      <tr><td><strong>Output</strong></td><td>Forecast path, 80% and 95% ranges, expected change, recommendation (buy now / defer / as planned), confidence, model version, compute time</td></tr>
+      <tr><td><strong>Rejected input</strong></td><td>Gaps, non-positive values, unknown series, horizon out of range (HTTP 422, logged)</td></tr>
+      <tr><td><strong>API</strong></td><td><code>POST /api/v1/forecast</code> with JSON <code>{"series": "total", "horizon": 6}</code> (signed-in analyst or administrator)</td></tr>
+      <tr><td><strong>Dependencies</strong></td><td>Python 3.13, Flask 3, statsmodels 0.15, pandas, numpy, joblib, Flask-SQLAlchemy, psycopg, gunicorn (<code>requirements.txt</code>)</td></tr>
+      <tr><td><strong>Run locally</strong></td><td><code>pip install -r requirements.txt</code> → <code>flask --app app init-db</code> → <code>flask --app app seed</code> → <code>flask --app app run</code></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Initial user instructions</h2><ol class="muted small">
+    <li>Read the forecast together with its 80% range; when the range crosses zero the signal is weak.</li>
+    <li>"Buy now" means the index is expected to rise more than 3% within the horizon; "Defer" means a fall of more than 3%; otherwise keep the plan.</li>
+    <li>The index is national. Check the product price of your department in the Market pages before buying.</li>
+    <li>Producers use the model inside their purchase plans: create a plan, add products, press <em>Evaluate with model</em>, then record the decision.</li>
+    <li>Report anything unexpected in <em>Support &amp; Feedback</em>.</li></ol>
+    <p class="small muted">Full guides in the repository: <code>docs/user_manual.md</code> and <code>docs/training_guide.md</code>.</p></div>
+  <div class="cardx"><h2>Integration with the information system (Activity 2)</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Step</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Model served on the server from the versioned artifact</td><td><span class="tag">Done</span></td></tr>
+      <tr><td>Plan evaluation: plan products → category → index series → forecast → recommendation</td><td><span class="tag">Done</span></td></tr>
+      <tr><td>Inference history with inputs, outputs, version and response time (database)</td><td><span class="tag">Done</span></td></tr>
+      <tr><td>Decision recorded and compared with the actual purchase price</td><td><span class="tag">Done</span></td></tr>
+      <tr><td>Version {{ versions[-1] }} registered and activated by the administrator</td><td><span class="tag">Done</span></td></tr>
+      <tr><td>Monthly registration of each new UPRA month by the analyst</td><td><span class="tag">Operating procedure</span></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<div class="cardx mt-3"><h2>Monitoring, incident reporting and user feedback</h2>
+  <div class="grid-2">
+    <ul class="muted small">
+      <li><strong>Monitoring:</strong> every inference, rejected input, slow request (&gt; 3 s) and server error is stored in the operational log; the analyst reviews the Model monitoring page (forecast vs actual, drift checks).</li>
+      <li><strong>Incident reporting:</strong> any signed-in user opens a report in <em>Support &amp; Feedback</em> (type bug, data_issue, model_issue or access; severity; description). States: open → in progress → resolved → closed.</li></ul>
+    <ul class="muted small">
+      <li><strong>Feedback:</strong> the same module has the "feedback" type; reports are reviewed weekly and prioritized into the next version.</li>
+      <li><strong>Response targets:</strong> high severity the same business day, medium 2 business days, low at the weekly review (<code>docs/support_procedures.md</code>).</li></ul>
+  </div>
+</div>
+{% endblock %}

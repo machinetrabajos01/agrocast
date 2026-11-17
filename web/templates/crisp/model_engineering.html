@@ -1,0 +1,44 @@
+{% extends 'crisp/_layout.html' %}
+{% set t = ev.tuning %}
+{% block lead %}Candidate algorithms and why they fit the problem, their features and configurations, hyperparameter tuning with temporal validation, the experiment log and the domain knowledge behind each decision.{% endblock %}
+{% block phase %}
+<div class="cardx"><h2>Algorithms compared</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Model</th><th>Type</th><th>Inputs and configuration</th><th>Why it was selected as a candidate</th></tr></thead><tbody>
+    <tr><td>Persistence</td><td>Baseline</td><td>Repeats the last observed value</td><td>Hard to beat for price indices; defines the success criterion</td></tr>
+    <tr><td>Seasonal naive</td><td>Baseline</td><td>Value of the same month one year earlier</td><td>Checks whether seasonality alone explains the series</td></tr>
+    <tr><td>ETS</td><td>Statistical</td><td>Log of the index; additive error; trend none, additive or damped, chosen by AICc</td><td>Smooth level and trend changes with few parameters</td></tr>
+    <tr><td>SARIMA</td><td>Statistical</td><td>Log of the index; d = 1; p, q in 0..2; optional seasonal AR(1) at lag 12; chosen by AICc</td><td>Captures autocorrelation of monthly changes after differencing</td></tr>
+    <tr><td>Direct Ridge</td><td>Machine learning</td><td>One model per horizon for the log change t → t+h; {{ t.ridge.features|length }} features (index lags, TRM, urea, DAP, month); standardized; alpha by inner time-series CV</td><td>Uses external cost drivers; regularization controls the many correlated features in a short sample</td></tr>
+  </tbody></table></div>
+  <p class="small muted mt-2">Deep learning and tree ensembles were not included: with {{ quality.observaciones }} monthly observations they would have more parameters than the data can support, and the rolling evaluation would make their variance hard to control.</p>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>SARIMA tuning (AICc, lower is better)</h2>
+    <p class="small muted">The grid has 18 combinations (p, q in 0..2 × with or without seasonal AR). The search is repeated at every origin using only the data available there. Best five with all data up to {{ ev.data_cutoff }}:</p>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Order</th><th>Seasonal</th><th>AICc</th></tr></thead><tbody>
+      {% for g in t.sarima[:5] %}<tr><td>{{ g.order }}</td><td>{{ g.seasonal_order }}</td><td>{{ g.aicc }}</td></tr>{% endfor %}</tbody></table></div>
+    <p class="small muted mt-2">At the last validation origin the best order was {{ t.sarima_last_validation_origin[0].order }} with seasonal {{ t.sarima_last_validation_origin[0].seasonal_order }}. The seasonal term does not improve AICc, which agrees with the poor result of the seasonal naive baseline.</p></div>
+  <div class="cardx"><h2>ETS and Ridge tuning</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>ETS specification</th><th>AICc</th></tr></thead><tbody>
+      {% for g in t.ets %}<tr><td>{{ g.specification }}</td><td>{{ g.aicc }}</td></tr>{% endfor %}</tbody></table></div>
+    <div class="table-wrap mt-3"><table class="table-darkx"><thead><tr><th>Ridge alpha</th><th>CV MAE, h = 1</th><th>CV MAE, h = 6</th></tr></thead><tbody>
+      {% for g in t.ridge.h1 %}<tr><td>{{ g.alpha }}</td><td>{{ g.cv_mae_log_change }}</td><td>{{ t.ridge.h6[loop.index0].cv_mae_log_change }}</td></tr>{% endfor %}</tbody></table></div>
+    <p class="small muted mt-2">Inner validation: TimeSeriesSplit with 3 folds of 6 months inside the training window. Selected alpha: {{ t.ridge.h1_selected }} (h = 1) and {{ t.ridge.h6_selected }} (h = 6). Error in log change units.</p></div>
+</div>
+
+<div class="cardx mt-3"><h2>Experiment log</h2>
+  <p class="small muted">Every run of the pipeline writes the backtest of each model and the tuning results. Download: <a href="{{ url_for('crisp_download', name='experiments.csv') }}">experiments.csv</a> · <a href="{{ url_for('crisp_download', name='evidence.json') }}">evidence.json</a></p>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Experiment</th><th>Model</th><th>Configuration</th><th>Block</th><th>Forecasts</th><th>MAE</th><th>RMSE</th><th>MASE</th></tr></thead><tbody>
+    {% for r in experiments if r.experiment.startswith('backtest') %}<tr><td>{{ r.experiment }}</td><td>{{ r.model }}</td><td class="small">{{ r.configuration }}</td><td>{{ r.block }}</td><td>{{ r.forecasts }}</td><td>{{ r.mae }}</td><td>{{ r.rmse }}</td><td>{{ r.mase }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="cardx mt-3"><h2>How domain knowledge informed the modeling</h2><ul class="muted small">
+  <li><strong>Imported inputs:</strong> most fertilizers and active ingredients are imported, so the exchange rate and international urea and DAP prices were tested as predictors (Ridge).</li>
+  <li><strong>Prices move in proportions:</strong> the models work on the logarithm, so a 10% rise means the same at 100 or at 200 points.</li>
+  <li><strong>Purchase cycle:</strong> producers buy one or two seasons ahead, which sets the horizon at six months.</li>
+  <li><strong>Seasonality:</strong> input demand follows the planting seasons, so seasonal terms were offered to SARIMA and Ridge; the data did not support them.</li>
+  <li><strong>Shocks are real:</strong> the 2021-2022 peak (fertilizer crisis) was kept, because removing it would make the model overconfident.</li>
+  <li><strong>Decision band:</strong> a change of ±3% in six months was chosen as the minimum that justifies moving a purchase, considering storage and financing costs.</li></ul></div>
+{% endblock %}

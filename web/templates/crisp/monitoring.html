@@ -1,0 +1,71 @@
+{% extends 'crisp/_layout.html' %}
+{% block lead %}Indicators, how drift and performance degradation are detected, review frequency and responsibilities, retraining criteria, risks and quality controls, the update procedure and an initial monitoring test.{% endblock %}
+{% block phase %}
+<div class="cardx"><h2>Monitoring indicators</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Group</th><th>Indicator</th><th>Source</th><th>Target / threshold</th></tr></thead><tbody>
+    <tr><td rowspan="3">Operation</td><td>Inferences per month, by series and version</td><td><code>inference</code> table</td><td>Trend only</td></tr>
+    <tr><td>Average and p95 response time</td><td><code>inference.response_ms</code>, <code>X-Response-Time-ms</code></td><td>&lt; 3 s (slow requests are logged)</td></tr>
+    <tr><td>Server errors and rejected inputs</td><td><code>event_log</code></td><td>0 errors; rejected inputs reviewed weekly</td></tr>
+    <tr><td rowspan="3">Model performance</td><td>MAPE of forecasts whose month is already observed</td><td>Forecast vs actual</td><td>Warning above 10%</td></tr>
+    <tr><td>Empirical 80% interval coverage</td><td>Forecast vs actual</td><td>Close to 80%; below 65% means intervals are too narrow</td></tr>
+    <tr><td>One-step error vs persistence</td><td>Quarterly backtest (<code>src.pipeline</code>)</td><td>Model must keep beating persistence in validation</td></tr>
+    <tr><td rowspan="2">Data</td><td>Mean shift (z) and volatility ratio of monthly log changes</td><td>Drift check</td><td>Warning |z| &gt; 2 or ratio &gt; 1.5; alert |z| &gt; 3 or ratio outside 0.33–2</td></tr>
+    <tr><td>Months since the last official index</td><td>Index records</td><td>≤ 3 (UPRA publication lag)</td></tr>
+    <tr><td>Business</td><td>Decisions that follow the model; planned vs actual cost of purchased plans</td><td>Indicators page</td><td>Reviewed monthly</td></tr>
+  </tbody></table></div>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Detecting data drift and degradation</h2><ul class="muted small">
+    <li><strong>Data drift:</strong> the artifact stores the mean and standard deviation of the training monthly log changes. Each month the last 12 changes are compared with that reference (z-score of the mean and volatility ratio).</li>
+    <li><strong>Performance degradation:</strong> every stored forecast is matched with the actual value when the analyst registers the new UPRA month. Two consecutive one-step errors above {{ mon.rules.ape_limit_pct if mon else 5 }}% open a performance incident.</li>
+    <li><strong>Concept drift:</strong> the quarterly backtest checks whether the selected model still beats persistence; if it does not, persistence becomes the reference until a new version is evaluated.</li>
+    <li><strong>Upstream changes:</strong> a change of the UPRA basket or methodology is checked with the robust z-score of the month of the change (as in January and September 2024).</li></ul></div>
+  <div class="cardx"><h2>Review frequency and responsibilities</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Activity</th><th>Frequency</th><th>Responsible</th></tr></thead><tbody>
+      <tr><td>Review server errors and slow requests</td><td>Daily</td><td>Administrator</td></tr>
+      <tr><td>Review incidents and feedback</td><td>Weekly</td><td>Analyst</td></tr>
+      <tr><td>Register the new UPRA month, run drift &amp; performance check</td><td>Monthly</td><td>Analyst</td></tr>
+      <tr><td>Monitoring meeting (indicators, decisions, incidents)</td><td>Monthly</td><td>Analyst + administrator</td></tr>
+      <tr><td>Full backtest and retraining decision</td><td>Quarterly</td><td>Model owner (administrator)</td></tr>
+      <tr><td>Activate or roll back a version</td><td>When approved</td><td>Administrator</td></tr>
+    </tbody></table></div></div>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Retraining criteria and update procedure</h2>
+    <p class="muted small"><strong>Retrain when:</strong> a drift <em>alert</em>; two consecutive <em>warnings</em>; a performance incident; a UPRA methodology change; or every quarter with the new months.</p>
+    <ol class="muted small">
+      <li><code>python -m src.pipeline --actualizar-fuentes</code> — download sources, prepare data, re-run the comparison.</li>
+      <li>Check that the selected model still beats persistence in validation; review the independent test.</li>
+      <li><code>python -m src.evidence</code> and <code>python -m src.train_model --version X.Y.Z</code> (MINOR for new data, MAJOR for a new algorithm).</li>
+      <li><code>python -m pytest</code>; commit the artifact and its model card; deploy.</li>
+      <li><code>flask --app app seed</code> registers the version as inactive; the administrator activates it. Rollback = activate the previous version.</li></ol>
+    <p class="muted small">Example: on 2026-11-16 the sources were refreshed (TRM to {{ quality.exogenas_ultima_fecha.trm }}, Pink Sheet to {{ quality.exogenas_ultima_fecha.urea_usd }}, SIPSA-I to {{ quality.sipsa_ultima_fecha }}; UPRA index still {{ quality.hasta }}) and version 1.1.0 was packaged and activated.</p></div>
+  <div class="cardx"><h2>Risks and quality controls</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Risk</th><th>Control</th></tr></thead><tbody>
+      <tr><td>Wrong or missing index month</td><td>Continuity check per series; values must be positive; comparison with Datos Abiertos</td></tr>
+      <tr><td>Leakage in a new experiment</td><td>Automated tests in <code>tests/test_pipeline.py</code> run on every change</td></tr>
+      <tr><td>Silent model change</td><td>Data fingerprint and version in each artifact; one active version; version stored with each inference</td></tr>
+      <tr><td>Overconfidence after a shock</td><td>Conformal intervals and the "low confidence" label when the range crosses zero</td></tr>
+      <tr><td>Drift check too slow for single shocks</td><td>Complemented by the consecutive-error rule (see the test below)</td></tr>
+    </tbody></table></div></div>
+</div>
+
+<div class="cardx mt-3"><h2>Initial monitoring test <span class="tag tag-warn">SIMULATED DATA</span></h2>
+  {% if mon %}
+  <div class="callout"><strong>The values below are simulated.</strong> No official index exists after {{ mon.data_cutoff }}, so six months were generated from the model path with {{ (mon.simulation.noise_sd_log * 100)|round(1) }}% monthly noise (seed {{ mon.simulation.seed }}). The "shock" scenario adds {{ mon.simulation.shock }}. Every record carries <code>data_type = "SIMULATED"</code>. Script: <code>python -m src.monitoring_test</code>. Log: <a href="{{ url_for('crisp_download', name='monitoring_test_log.jsonl') }}">monitoring_test_log.jsonl</a>.</div>
+  <div class="kpi-grid mt-3">
+    {% for name, s in mon.scenarios.items() %}
+    <div class="kpi"><div class="label">{{ name|capitalize }}: one-step MAPE</div><div class="value">{{ s.mape_pct }}%</div><div class="note">80% coverage {{ s.coverage_80_pct }}%</div></div>
+    <div class="kpi"><div class="label">{{ name|capitalize }}: incidents opened</div><div class="value">{{ s.incidents|length }}</div><div class="note">Final drift status: {{ s.final_drift_status }}</div></div>
+    {% endfor %}
+  </div>
+  <div class="table-wrap mt-3"><table class="table-darkx"><thead><tr><th>Data</th><th>Scenario</th><th>Month</th><th>Forecast</th><th>80% range</th><th>Simulated actual</th><th>Error %</th><th>In range</th><th>Drift (z)</th><th>Action</th></tr></thead><tbody>
+    {% for name, s in mon.scenarios.items() %}{% for r in s.log %}<tr><td><span class="tag tag-warn">SIMULATED</span></td><td>{{ r.scenario }}</td><td>{{ r.month }}</td><td>{{ r.predicted }}</td><td>{{ r.lo80 }} – {{ r.hi80 }}</td><td>{{ r.simulated_actual }}</td><td>{{ r.ape_pct }}</td><td>{{ 'yes' if r.inside_80 else 'no' }}</td><td>{{ r.drift_status }} ({{ r.drift_z }})</td><td class="small">{{ r.actions|join('; ') }}</td></tr>{% endfor %}{% endfor %}
+  </tbody></table></div>
+  <p class="muted small mt-2"><strong>Result.</strong> In the stable scenario no rule fires. In the shock scenario the consecutive-error rule opens a performance incident in the second month of the shock, while the drift check stays "ok": its reference includes the 2021-2022 volatility, so a single 12% jump does not move the 12-month statistics enough. This is why both rules are used together, and it is recorded as an improvement for the next version (a shorter drift window).</p>
+  {% else %}<p class="muted small">Run <code>python -m src.monitoring_test</code> to generate the test.</p>{% endif %}
+  <p class="muted small"><strong>Real (non-simulated) operational log:</strong> the published system stores every inference with its response time and version; for example the plan evaluation run on 2026-11-16 in production took 488 ms with SARIMA v1.0.0. Administrators see these records in Admin → Operational log.</p>
+</div>
+{% endblock %}

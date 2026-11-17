@@ -1,0 +1,62 @@
+{% extends 'crisp/_layout.html' %}
+{% set d = ev.data %}{% set p = ev.partitions %}
+{% block lead %}Source and feature selection, cleaning, transformations with their justification, evidence before and after processing, and the temporal partitions that prevent data leakage.{% endblock %}
+{% block phase %}
+<div class="kpi-grid">
+  <div class="kpi"><div class="label">Raw rows with a valid month</div><div class="value">{{ d.raw_rows_with_valid_date }}</div><div class="note">{{ d.raw_rows_discarded }} header and note rows discarded</div></div>
+  <div class="kpi"><div class="label">Zeros converted to missing</div><div class="value">{{ d.zeros_replaced_as_missing }}</div><div class="note">0 means "no data" in the UPRA annex</div></div>
+  <div class="kpi"><div class="label">Duplicated months</div><div class="value">{{ d.duplicated_months }}</div><div class="note">Rule: keep the first occurrence</div></div>
+  <div class="kpi"><div class="label">Processed dataset</div><div class="value">{{ d.processed_rows }} × {{ d.processed_columns }}</div><div class="note">{{ d.period[0] }} to {{ d.period[1] }}, monthly (MS)</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="cardx"><h2>Selected sources and features</h2><ul class="muted small">
+    {% for s in ev.sources %}<li><strong>{{ s.name }}.</strong> {{ s.use }}.</li>{% endfor %}</ul>
+    <p class="small muted">Product-level series of the annex (for example chlorpyrifos and fipronil) were not used as features: several leave the basket, and the total index already aggregates them with official weights.</p></div>
+  <div class="cardx"><h2>Missing values, duplicates, inconsistencies and outliers</h2><ul class="muted small">
+    <li><strong>Missing values:</strong> zeros in the annex mean that a sub-index did not exist yet or a product left the basket ("Other inputs" starts in {{ quality.primer_mes_otros_insumos }}, chlorpyrifos ends in {{ quality.ultimo_mes_clorpirifos }}, fipronil in {{ quality.ultimo_mes_fipronil }}). They are converted to missing values, never imputed. The target has no missing values.</li>
+    <li><strong>Duplicates:</strong> none found; the loader keeps one row per month.</li>
+    <li><strong>Inconsistencies:</strong> annex vs Datos Abiertos difference of at most {{ quality.comparacion_datos_abiertos.diferencia_maxima }} points; months missing from the annex are added from the API when available.</li>
+    <li><strong>Outliers:</strong> {{ d.outliers|length }} months have a robust z-score above 3 in the monthly log change. They are kept because they are real market movements (2021-2022 international shock and April-May 2026).</li></ul></div>
+</div>
+
+<div class="cardx mt-3"><h2>Evidence before and after processing</h2>
+  <img class="figure-img" src="{{ url_for('crisp_figure', name='before_after_zeros') }}" alt="Raw column with zeros and the same column after converting zeros to missing">
+  <div class="grid-2 mt-3">
+    <div><h3>Before (raw UPRA annex)</h3><div class="table-wrap"><table class="table-darkx"><thead><tr><th>Month</th><th>Total index</th><th>Other inputs</th><th>Chlorpyrifos</th><th>Fipronil</th></tr></thead><tbody>
+      {% for r in d.before_sample %}<tr><td>{{ r.month }}</td><td>{{ r['T_Índice'] }}</td><td>{{ r.T_Otros }}</td><td>{{ r.Clorpirifos }}</td><td>{{ r.Fipronil }}</td></tr>{% endfor %}</tbody></table></div></div>
+    <div><h3>After (processed)</h3><div class="table-wrap"><table class="table-darkx"><thead><tr><th>Month</th><th>Total index</th><th>Other inputs</th><th>Chlorpyrifos</th><th>Fipronil</th></tr></thead><tbody>
+      {% for r in d.after_sample %}<tr><td>{{ r.month }}</td><td>{{ r['T_Índice'] }}</td><td>{{ r.T_Otros if r.T_Otros is not none else 'NaN' }}</td><td>{{ r.Clorpirifos if r.Clorpirifos is not none else 'NaN' }}</td><td>{{ r.Fipronil if r.Fipronil is not none else 'NaN' }}</td></tr>{% endfor %}</tbody></table></div></div>
+  </div>
+  <img class="figure-img mt-3" src="{{ url_for('crisp_figure', name='transformations') }}" alt="Index level, logarithm and monthly log change">
+  <div class="table-wrap mt-2"><table class="table-darkx"><thead><tr><th>Stationarity test (p-value)</th><th>Level</th><th>Logarithm</th><th>Monthly log change</th></tr></thead><tbody>
+    <tr><td>ADF, 1 lag (null: unit root)</td><td>{{ d.adf_p_values.level }}</td><td>{{ d.adf_p_values.log }}</td><td>{{ d.adf_p_values.log_difference }}</td></tr>
+    <tr><td>KPSS (null: stationary)</td><td>{{ d.kpss_p_values.level }}</td><td>{{ d.kpss_p_values.log }}</td><td>≥ {{ d.kpss_p_values.log_difference }}</td></tr></tbody></table></div>
+  <p class="small muted">Both tests agree: the level and the logarithm are not stationary, and one difference of the logarithm is. That is why SARIMA uses d = 1 on the log scale and Ridge works with log changes.</p>
+</div>
+
+<div class="cardx mt-3"><h2>Transformations and justification</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Step</th><th>Transformation</th><th>Justification</th><th>Fitted on</th></tr></thead><tbody>
+    <tr><td>1</td><td>Parse month, monthly frequency (first day of month)</td><td>One row per month; gaps become visible</td><td>Fixed rule</td></tr>
+    <tr><td>2</td><td>Zeros to missing values</td><td>Zero means "no data" in the annex</td><td>Fixed rule</td></tr>
+    <tr><td>3</td><td>Natural logarithm</td><td>Changes become proportional; stabilizes variance; forecasts stay positive</td><td>Fixed rule</td></tr>
+    <tr><td>4</td><td>First difference of the log (d = 1)</td><td>Removes the stochastic trend (ADF and KPSS above)</td><td>Inside SARIMA</td></tr>
+    <tr><td>5</td><td>Lagged log changes (1, 2, 3, 6, 12 months)</td><td>Momentum and annual change of the index (Ridge)</td><td>Past values only</td></tr>
+    <tr><td>6</td><td>TRM, urea and DAP log changes (1, 3, 6 months)</td><td>Imported cost drivers (Ridge)</td><td>Past values only</td></tr>
+    <tr><td>7</td><td>Month as sine and cosine</td><td>Cyclical encoding of seasonality without 11 dummy columns</td><td>Fixed rule</td></tr>
+    <tr><td>8</td><td>Standardization (StandardScaler)</td><td>Ridge penalty needs comparable scales</td><td><strong>Training rows of each origin only</strong></td></tr>
+  </tbody></table></div>
+  <p class="small muted mt-2">Ridge features ({{ ev.tuning.ridge.features|length }}): {{ ev.tuning.ridge.features|join(', ') }}.</p>
+</div>
+
+<div class="cardx mt-3"><h2>Training, validation and test partitions</h2>
+  <img class="figure-img" src="{{ url_for('crisp_figure', name='partitions') }}" alt="Temporal partitions">
+  <div class="table-wrap mt-2"><table class="table-darkx"><thead><tr><th>Block</th><th>Months</th><th>Use</th></tr></thead><tbody>
+    <tr><td>Initial training</td><td>{{ p.training_initial[0] }} to {{ p.training_initial[1] }} (minimum {{ p.minimum_training_months }} months)</td><td>First fit; the window grows by one month at each origin</td></tr>
+    <tr><td>Validation</td><td>{{ p.validation_origins[2] }} origins, {{ p.validation_origins[0] }} to {{ p.validation_origins[1] }} ({{ p.forecasts_per_model.validation }} forecasts per model)</td><td>Model comparison, tuning and selection</td></tr>
+    <tr><td>Independent test</td><td>{{ p.test_origins[2] }} origins, {{ p.test_origins[0] }} to {{ p.test_origins[1] }}; targets {{ p.test_targets[0] }} to {{ p.test_targets[1] }} ({{ p.forecasts_per_model.test }} forecasts per model)</td><td>Reported once, never used for selection or tuning</td></tr>
+    <tr><td>Final fit</td><td>{{ p.final_refit[0] }} to {{ p.final_refit[1] }}</td><td>Model saved for deployment</td></tr>
+  </tbody></table></div>
+  <div class="callout mt-3"><strong>Leakage control.</strong> A random split would mix future and past months, so the partitions follow time. At every origin the models, the scaler, the Ridge penalty and the SARIMA/ETS order are fitted only with months up to that origin. The interval quantiles used to check test coverage are calibrated with validation errors only.</div>
+</div>
+{% endblock %}

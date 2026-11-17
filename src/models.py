@@ -112,9 +112,9 @@ def ridge(y, h, exo=None, **_):
 
 MODELOS = {"naive": naive, "snaive": snaive, "ets": ets, "sarima": sarima, "ridge": ridge}
 NOMBRES = {
-    "naive": "Persistencia (referencia)",
-    "snaive": "Estacional ingenuo (referencia)",
-    "ets": "Suavizamiento exponencial (ETS)",
+    "naive": "Persistence (baseline)",
+    "snaive": "Seasonal naive (baseline)",
+    "ets": "Exponential smoothing (ETS)",
     "sarima": "SARIMA",
-    "ridge": "Ridge directo con variables externas",
+    "ridge": "Direct Ridge with external variables",
 }

@@ -25,6 +25,13 @@
         <a href="{{ url_for('crisp') }}">CRISP-ML(Q)</a>
         <a href="{{ url_for('system_design') }}">System Design</a>
         <a href="{{ url_for('documentation') }}">Documentation</a></div></div>
+      <div class="nav-drop"><button>CRISP-ML <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
+        <a href="{{ url_for('crisp_phase', phase='business-data') }}">1. Business &amp; Data Understanding</a>
+        <a href="{{ url_for('crisp_phase', phase='data-engineering') }}">2. Data Engineering</a>
+        <a href="{{ url_for('crisp_phase', phase='model-engineering') }}">3. Model Engineering</a>
+        <a href="{{ url_for('crisp_phase', phase='evaluation') }}">4. Model Evaluation</a>
+        <a href="{{ url_for('crisp_phase', phase='deployment') }}">5. Model Deployment &amp; Demo</a>
+        <a href="{{ url_for('crisp_phase', phase='monitoring') }}">6. Monitoring &amp; Maintenance</a></div></div>
       <div class="nav-drop"><button>Models <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
         <a href="{{ url_for('models') }}">Model Overview</a>
         <a href="{{ url_for('model_detail', model='ets') }}">ETS</a>

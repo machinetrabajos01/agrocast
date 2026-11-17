@@ -6,7 +6,10 @@ the official UPRA agricultural input price index six months ahead.
 
 **Published system:** https://agrocast-ay0u.onrender.com (health check: `/health`)
 
-- Public homepage with the project documentation (problem, objectives, CRISP-ML(Q), models, system design).
+- Public homepage with the project documentation and a **CRISP-ML** menu with the six phases
+  (business and data understanding, data engineering, model engineering, evaluation, deployment,
+  monitoring), each with its actual work, figures and results.
+- Public model demonstration (`/crisp-ml/deployment`) that accepts new monthly values and returns a forecast.
 - Registration, login and logout; passwords stored as salted scrypt hashes; CSRF protection on every form.
 - Three roles enforced on the server: **producer**, **analyst** and **admin**.
 - Persistent PostgreSQL database (Supabase, schema `agrocast`).
@@ -28,10 +31,17 @@ agrosys/                   information system
   views_auth.py            register / login / logout / user administration
   views_ops.py             farms, purchase plans, decisions, history, incidents
   views_monitor.py         index records, forecast lab, API, monitoring, indicators, model versions, logs
+  views_crisp.py           public CRISP-ML phase pages and model demonstration
   seed.py                  flask CLI: init-db, seed, create-user
-src/                       Activity 1 pipeline (ingestion, preparation, models, evaluation)
+src/                       machine learning pipeline
+  ingest.py, prepare.py    download official sources, clean and align the monthly data
+  models.py, evaluate.py   candidate models, rolling-origin backtest, selection, intervals
+  pipeline.py              runs preparation, modeling and evaluation -> reports/
+  evidence.py              CRISP-ML evidence (before/after data, partitions, tuning, diagnostics) -> reports/crisp/
   train_model.py           packages the selected SARIMA as models/sarima_v<version>.joblib
   inference.py             server-side inference, recommendation rule, drift check
+  monitoring_test.py       initial monitoring test with simulated data -> reports/crisp/
+reports/                   data quality, backtest, metrics, results, figures and CRISP-ML evidence
 models/                    versioned model artifacts and model cards
 supabase/migrations/       database schema (public = pipeline results, agrocast = information system)
 supabase/app_role.example.sql   least-privilege login role for the server
@@ -40,6 +50,24 @@ tests/                     pipeline tests and information system integration tes
 docs/                      technical manual, user manual, training guide, support and monitoring procedures
 render.yaml                deployment blueprint
 ```
+
+## Reproduce the machine learning project
+
+```bash
+python -m src.pipeline --actualizar-fuentes   # download UPRA, TRM, Pink Sheet and SIPSA; prepare; backtest; select
+python -m src.evidence                        # CRISP-ML evidence: reports/crisp/evidence.json, experiments.csv, figures
+python -m src.train_model --version 1.1.0     # model artifact + model card in models/
+python -m src.monitoring_test                 # initial monitoring test (SIMULATED data)
+python -m pytest -q                           # leakage, pipeline and information system tests
+```
+
+The first command needs internet access; the large raw files (SIPSA-I and wholesale prices, about 63 MB)
+are downloaded to `data/raw/` and are not stored in the repository. The UPRA annex and the TRM file are
+included, so the official index used for training is versioned. Latest official index month: August 2026
+(checked on 16 November 2026).
+
+Current results (validation / independent test MASE): persistence 4.321 / 1.715, ETS 3.545 / 1.837,
+**SARIMA 3.324 / 1.837 (selected)**, Ridge 4.420 / 2.138. See [CRISP-ML phases](docs/crisp_ml_phases.md).
 
 ## Local setup
 
@@ -84,10 +112,11 @@ administrator restrictions.
 ## Model
 
 The production model is SARIMA (lowest validation MASE among ETS, SARIMA and Ridge in Activity 1).
-`python -m src.train_model --version 1.0.0` repeats the specification search used in the evaluation
+`python -m src.train_model --version 1.1.0` repeats the specification search used in the evaluation
 (log transform, d = 1, AICc grid) on the full series and freezes the parameters. The web server only
-applies those parameters to the stored records, so the forecast of version 1.0.0 matches the one
-reported by the Activity 1 pipeline.
+applies those parameters to the stored records, so the forecast of version 1.1.0 (index 149.628 for
+February 2027) matches `reports/resultados.json`. Version 1.0.0 (first release) is kept for traceability;
+1.1.0 was packaged on 16 November 2026 after refreshing the external sources and is the active version.
 
 To publish a new version: run the pipeline, package a new version, `flask --app app seed`
 (registers it as inactive), deploy, and activate it in **Admin → Model versions**.
@@ -119,4 +148,5 @@ No secrets are stored in the repository. Test account credentials are delivered 
 - [Training guide](docs/training_guide.md)
 - [Support, incidents and feedback](docs/support_procedures.md)
 - [Monitoring and maintenance](docs/monitoring_maintenance.md)
-- Activity 1 methodology: `docs/metodologia_crisp_ml.md`, `docs/diccionario_datos.md`
+- [CRISP-ML phases](docs/crisp_ml_phases.md)
+- [Data dictionary](docs/data_dictionary.md)

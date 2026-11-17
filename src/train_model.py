@@ -72,6 +72,12 @@ def build(version: str) -> dict:
         "transform": "log",
         "frequency": "MS",
         "horizon": c.HORIZONTE,
+        "preprocessing": [
+            "Parse month to the first day of the month (frequency MS); keep the last value of duplicated months",
+            "Reject gaps, non-positive values and series shorter than 36 months",
+            "Natural logarithm of the index; differencing (d = 1) is part of the SARIMA specification",
+            "Forecasts and intervals are transformed back with the exponential function",
+        ],
         "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "data_cutoff": index.dropna(how="all").index[-1].strftime("%Y-%m-%d"),
         "data_fingerprint": hashlib.sha256(source.read_bytes()).hexdigest()[:16],

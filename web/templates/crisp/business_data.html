@@ -1,0 +1,76 @@
+{% extends 'crisp/_layout.html' %}
+{% block lead %}Approved problem, stakeholders, objectives, the learning task, the data and its quality, feasibility and the success criteria fixed before modeling.{% endblock %}
+{% block phase %}
+<div class="grid-2">
+  <div class="cardx"><h2>Problem and context</h2>
+    <p>Fertilizers and pesticides are a large share of crop production costs in Colombia, and most of them are imported and priced in dollars. Between January 2021 and mid-2022 the official agricultural input price index rose from 100 to more than 220 points, and it fell again during 2023. Producers who buy inputs once or twice per season cannot easily tell whether to buy now or wait, and budgets prepared months in advance become outdated.</p>
+    <p class="muted">AGROCAST forecasts the official UPRA input price index one to six months ahead and turns the forecast into a purchase recommendation for each purchase plan.</p>
+  </div>
+  <div class="cardx"><h2>Stakeholders and beneficiaries</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Stakeholder</th><th>Interest</th></tr></thead><tbody>
+      <tr><td><strong>Small and medium producers</strong> (main beneficiaries)</td><td>Decide when to buy inputs and how much to budget</td></tr>
+      <tr><td>Producer associations and cooperatives</td><td>Plan joint purchases for their members</td></tr>
+      <tr><td>Technical assistants and agronomists</td><td>Support producers with price signals and plan reviews</td></tr>
+      <tr><td>UPRA, DANE, Ministry of Agriculture</td><td>Data providers (index, SIPSA-I prices)</td></tr>
+      <tr><td>Project team (University of Cundinamarca)</td><td>Builds, evaluates and maintains the model</td></tr>
+    </tbody></table></div>
+  </div>
+</div>
+
+<div class="cardx mt-3"><h2>From business objectives to machine learning objectives</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Business objective</th><th>Machine learning objective</th><th>Measure</th></tr></thead><tbody>
+    <tr><td>Anticipate input cost changes for the next season</td><td>Forecast the national, fertilizer and pesticide index 1 to 6 months ahead</td><td>MAE, RMSE and MASE by horizon</td></tr>
+    <tr><td>Decide whether to buy now, wait or keep the plan</td><td>Classify the expected six-month change with a ±3% decision band</td><td>Decision recorded per plan and compared with the actual price</td></tr>
+    <tr><td>Avoid false certainty</td><td>Produce calibrated 80% and 95% intervals</td><td>Interval coverage on the independent test block</td></tr>
+    <tr><td>Use the forecast in daily work</td><td>Serve the model on the server with traceable versions</td><td>Response time, logged inferences, drift checks</td></tr>
+  </tbody></table></div>
+  <div class="grid-2 mt-3">
+    <div><h3>Questions the model answers</h3><ol class="muted small">
+      <li>How much will the input price index change in the next one to six months?</li>
+      <li>Is the expected change large enough (more than ±3%) to move the purchase date of a plan?</li>
+      <li>How uncertain is the forecast (80% and 95% ranges)?</li></ol></div>
+    <div><h3>Learning task</h3><p class="muted small"><strong>Supervised regression on a time series (multi-step forecasting).</strong> Monthly frequency, horizon of six months, target = index level (January 2021 = 100). Each forecast uses only information available at its origin month.</p></div>
+  </div>
+</div>
+
+<div class="cardx mt-3"><h2>Data sources and variables</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Source</th><th>Provider</th><th>Role</th><th>Frequency</th></tr></thead><tbody>
+    {% for s in ev.sources %}<tr><td>{{ s.name }}</td><td>{{ s.provider }}</td><td>{{ s.role }}</td><td>{{ s.frequency }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="kpi-grid mt-3">
+    <div class="kpi"><div class="label">Monthly observations</div><div class="value">{{ quality.observaciones }}</div><div class="note">{{ quality.desde }} to {{ quality.hasta }}</div></div>
+    <div class="kpi"><div class="label">Target variable</div><div class="value">T_Índice</div><div class="note">National total index; also fertilizer and pesticide sub-indices</div></div>
+    <div class="kpi"><div class="label">Raw annex columns</div><div class="value">{{ ev.data.raw_columns }}</div><div class="note">9 index series kept; products used for quality checks</div></div>
+    <div class="kpi"><div class="label">External variables</div><div class="value">3</div><div class="note">TRM, urea and DAP (USD), up to {{ quality.exogenas_ultima_fecha.trm }}</div></div>
+  </div>
+  <p class="small muted mt-2">The latest official index published by UPRA (annex and Datos Abiertos) is {{ quality.hasta }}; this was verified on 2026-11-16 (Datos Abiertos last month: {{ quality.comparacion_datos_abiertos.ultima_fecha_api }}). SIPSA-I input prices are available up to {{ quality.sipsa_ultima_fecha }}.</p>
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Quality, relevance and sufficiency</h2><ul class="muted small">
+    <li><strong>Completeness:</strong> {{ quality.meses_ausentes }} missing months and {{ quality.faltantes_indice_total }} missing values in the target.</li>
+    <li><strong>Consistency:</strong> the annex and the Datos Abiertos API agree in {{ quality.comparacion_datos_abiertos.meses_comparados }} months (maximum difference {{ quality.comparacion_datos_abiertos.diferencia_maxima }} points, rounding).</li>
+    <li><strong>Relevance:</strong> the 12-month change of an index rebuilt from SIPSA-I prices correlates with the UPRA sub-indices: fertilizers {{ quality.correlacion_variacion_12m_sipsa_vs_upra.Fertilizantes }}, herbicides {{ quality.correlacion_variacion_12m_sipsa_vs_upra.Herbicidas }}, fungicides {{ quality.correlacion_variacion_12m_sipsa_vs_upra.Fungicidas }}, insecticides {{ quality.correlacion_variacion_12m_sipsa_vs_upra.Insecticidas }}.</li>
+    <li><strong>Basket changes:</strong> January 2024 ({{ quality.cambios_de_canasta.ene_2024_amplia_canasta.variacion_mes_pct }}%, robust z {{ quality.cambios_de_canasta.ene_2024_amplia_canasta.z_robusto }}) and September 2024 ({{ quality.cambios_de_canasta.sep_2024_excluye_fipronil.variacion_mes_pct }}%, z {{ quality.cambios_de_canasta.sep_2024_excluye_fipronil.z_robusto }}) are not atypical, so no splicing is needed.</li>
+    <li><strong>Sufficiency:</strong> {{ quality.observaciones }} observations is a short series. It supports parsimonious models (ETS, SARIMA, regularized regression) but not complex models with many parameters.</li></ul></div>
+  <div class="cardx"><h2>Feasibility, limitations and risks</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Risk or limitation</th><th>Treatment</th></tr></thead><tbody>
+      <tr><td>Short series (93 months)</td><td>Parsimonious models, regularization, rolling-origin evaluation</td></tr>
+      <tr><td>International shocks (2021-2022)</td><td>Kept in the data; intervals calibrated with historical errors</td></tr>
+      <tr><td>Information leakage</td><td>Each origin only sees past data; automated tests</td></tr>
+      <tr><td>Publication lag (about 6-8 weeks)</td><td>Forecast origin is the last official month; the system registers new months</td></tr>
+      <tr><td>Index is not a transaction price</td><td>Warnings in the platform; product prices from SIPSA-I</td></tr>
+    </tbody></table></div>
+    <p class="small muted mt-2"><strong>Technical feasibility:</strong> open official data, Python libraries, free hosting. <strong>Organizational feasibility:</strong> the decision (buy now or later) is already made by producers; the system only adds an evidence-based signal.</p></div>
+</div>
+
+<div class="cardx mt-3"><h2>Success criteria</h2>
+  <p class="small muted">The first two criteria come from the approved proposal ("improve persistence consistently in temporal evaluation") and were fixed before any model was evaluated. The coverage and response-time criteria were added when the model was prepared for operation.</p>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Criterion</th><th>Threshold</th><th>Where it is checked</th></tr></thead><tbody>
+    <tr><td>Selected model beats persistence in validation</td><td>Validation MASE lower than persistence</td><td>Phase 4</td></tr>
+    <tr><td>Improvement holds on the independent test</td><td>Test MASE lower than persistence</td><td>Phase 4</td></tr>
+    <tr><td>Calibrated uncertainty</td><td>80% interval coverage of at least 80% on the test block</td><td>Phase 4</td></tr>
+    <tr><td>Operational response</td><td>Inference under 3 seconds; every inference logged with its model version</td><td>Phases 5 and 6</td></tr>
+  </tbody></table></div>
+</div>
+{% endblock %}
