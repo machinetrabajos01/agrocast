@@ -1,0 +1,29 @@
+experiment,date,model,configuration,block,forecasts,mae,rmse,mase,aicc
+backtest-ets-prueba,2026-11-17,ETS,log; additive error; trend by AICc (none/additive/damped),test,72,5.458,9.195,1.837,
+backtest-ets-validacion,2026-11-17,ETS,log; additive error; trend by AICc (none/additive/damped),validation,240,10.948,20.744,3.545,
+backtest-naive-prueba,2026-11-17,Persistence,last value repeated,test,72,5.063,9.498,1.715,
+backtest-naive-validacion,2026-11-17,Persistence,last value repeated,validation,240,12.781,18.841,4.321,
+backtest-ridge-prueba,2026-11-17,Ridge,direct model per horizon; 16 features; alpha by TimeSeriesSplit,test,72,6.402,9.61,2.138,
+backtest-ridge-validacion,2026-11-17,Ridge,direct model per horizon; 16 features; alpha by TimeSeriesSplit,validation,240,14.118,21.079,4.42,
+backtest-sarima-prueba,2026-11-17,SARIMA,"log; d=1; p,q in 0..2; seasonal (1,0,0,12) optional; AICc per origin",test,72,5.456,9.195,1.837,
+backtest-sarima-validacion,2026-11-17,SARIMA,"log; d=1; p,q in 0..2; seasonal (1,0,0,12) optional; AICc per origin",validation,240,10.297,18.907,3.324,
+backtest-snaive-prueba,2026-11-17,Seasonal naive,value 12 months earlier,test,72,10.706,12.426,3.531,
+backtest-snaive-validacion,2026-11-17,Seasonal naive,value 12 months earlier,validation,240,48.827,58.057,15.677,
+tuning-sarima-final-origin,2026-11-17,SARIMA,"order (1, 1, 1) seasonal (0, 0, 0, 0)",training (AICc),,,,,-471.466
+tuning-sarima-final-origin,2026-11-17,SARIMA,"order (1, 1, 0) seasonal (0, 0, 0, 0)",training (AICc),,,,,-471.212
+tuning-sarima-final-origin,2026-11-17,SARIMA,"order (2, 1, 0) seasonal (0, 0, 0, 0)",training (AICc),,,,,-470.743
+tuning-sarima-final-origin,2026-11-17,SARIMA,"order (1, 1, 2) seasonal (0, 0, 0, 0)",training (AICc),,,,,-470.377
+tuning-sarima-final-origin,2026-11-17,SARIMA,"order (1, 1, 1) seasonal (1, 0, 0, 12)",training (AICc),,,,,-469.852
+tuning-ets-final-origin,2026-11-17,ETS,Damped additive trend,training (AICc),,,,,-470.121
+tuning-ets-final-origin,2026-11-17,ETS,Additive trend,training (AICc),,,,,-463.083
+tuning-ets-final-origin,2026-11-17,ETS,No trend,training (AICc),,,,,-381.202
+tuning-ridge-h1,2026-11-17,Ridge,alpha 0.1,inner time-series CV (3 folds),,0.011,,,
+tuning-ridge-h1,2026-11-17,Ridge,alpha 1.0,inner time-series CV (3 folds),,0.01104,,,
+tuning-ridge-h1,2026-11-17,Ridge,alpha 10.0,inner time-series CV (3 folds),,0.01149,,,
+tuning-ridge-h1,2026-11-17,Ridge,alpha 100.0,inner time-series CV (3 folds),,0.01215,,,
+tuning-ridge-h1,2026-11-17,Ridge,alpha 1000.0,inner time-series CV (3 folds),,0.01341,,,
+tuning-ridge-h6,2026-11-17,Ridge,alpha 0.1,inner time-series CV (3 folds),,0.0821,,,
+tuning-ridge-h6,2026-11-17,Ridge,alpha 1.0,inner time-series CV (3 folds),,0.07997,,,
+tuning-ridge-h6,2026-11-17,Ridge,alpha 10.0,inner time-series CV (3 folds),,0.07914,,,
+tuning-ridge-h6,2026-11-17,Ridge,alpha 100.0,inner time-series CV (3 folds),,0.07234,,,
+tuning-ridge-h6,2026-11-17,Ridge,alpha 1000.0,inner time-series CV (3 folds),,0.05274,,,

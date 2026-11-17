@@ -1,0 +1,594 @@
+{
+  "generated_at": "2026-11-17T03:19:34+00:00",
+  "data_cutoff": "2026-08",
+  "sources": [
+    {
+      "name": "Agricultural input price index (UPRA annex and Datos Abiertos API gwbi-fnzs)",
+      "provider": "UPRA - Ministry of Agriculture",
+      "role": "Target variable (total, fertilizer and pesticide index)",
+      "frequency": "Monthly",
+      "use": "Selected: official, monthly, comparable since 2018"
+    },
+    {
+      "name": "Representative market exchange rate (TRM, Datos Abiertos mcec-87by)",
+      "provider": "Superintendencia Financiera",
+      "role": "Exogenous feature (Ridge)",
+      "frequency": "Daily, averaged to monthly",
+      "use": "Selected: most inputs are imported and priced in dollars"
+    },
+    {
+      "name": "World Bank Pink Sheet (urea and DAP prices)",
+      "provider": "World Bank",
+      "role": "Exogenous feature (Ridge)",
+      "frequency": "Monthly",
+      "use": "Selected: international fertilizer prices lead the domestic index"
+    },
+    {
+      "name": "SIPSA-I input prices by department",
+      "provider": "DANE",
+      "role": "External validation of the index and product prices for the plans",
+      "frequency": "Monthly",
+      "use": "Selected for contrast and for product prices; not a model feature (shorter and irregular)"
+    }
+  ],
+  "data": {
+    "raw_rows_with_valid_date": 93,
+    "raw_rows_discarded": 4,
+    "raw_columns": 57,
+    "zeros_replaced_as_missing": 156,
+    "duplicated_months": 0,
+    "processed_rows": 93,
+    "processed_columns": 9,
+    "period": [
+      "2018-12",
+      "2026-08"
+    ],
+    "before_sample": [
+      {
+        "month": "2020-12",
+        "T_Índice": 99.64213608397363,
+        "T_Otros": 0.0,
+        "Clorpirifos": 99.39044064426675,
+        "Fipronil": 99.64602094528915
+      },
+      {
+        "month": "2021-01",
+        "T_Índice": 100.0,
+        "T_Otros": 100.0,
+        "Clorpirifos": 100.0,
+        "Fipronil": 100.0
+      },
+      {
+        "month": "2023-12",
+        "T_Índice": 148.42544212341636,
+        "T_Otros": 125.91631368399293,
+        "Clorpirifos": 150.65976578837308,
+        "Fipronil": 114.77387639043243
+      },
+      {
+        "month": "2024-01",
+        "T_Índice": 146.00598395756444,
+        "T_Otros": 125.49816071202451,
+        "Clorpirifos": 0.0,
+        "Fipronil": 114.76371561366712
+      },
+      {
+        "month": "2024-08",
+        "T_Índice": 135.92104748865953,
+        "T_Otros": 125.27871323460144,
+        "Clorpirifos": 0.0,
+        "Fipronil": 130.93635535982207
+      },
+      {
+        "month": "2024-09",
+        "T_Índice": 136.21473209596826,
+        "T_Otros": 125.82930065139621,
+        "Clorpirifos": 0.0,
+        "Fipronil": 0.0
+      }
+    ],
+    "after_sample": [
+      {
+        "month": "2020-12",
+        "T_Índice": 99.6421,
+        "T_Otros": null,
+        "Clorpirifos": 99.39044064426675,
+        "Fipronil": 99.64602094528915
+      },
+      {
+        "month": "2021-01",
+        "T_Índice": 100.0,
+        "T_Otros": 100.0,
+        "Clorpirifos": 100.0,
+        "Fipronil": 100.0
+      },
+      {
+        "month": "2023-12",
+        "T_Índice": 148.4254,
+        "T_Otros": 125.9163,
+        "Clorpirifos": 150.65976578837308,
+        "Fipronil": 114.77387639043243
+      },
+      {
+        "month": "2024-01",
+        "T_Índice": 146.006,
+        "T_Otros": 125.4982,
+        "Clorpirifos": null,
+        "Fipronil": 114.76371561366712
+      },
+      {
+        "month": "2024-08",
+        "T_Índice": 135.921,
+        "T_Otros": 125.2787,
+        "Clorpirifos": null,
+        "Fipronil": 130.93635535982207
+      },
+      {
+        "month": "2024-09",
+        "T_Índice": 136.2147,
+        "T_Otros": 125.8293,
+        "Clorpirifos": null,
+        "Fipronil": null
+      }
+    ],
+    "adf_p_values": {
+      "level": 0.3005,
+      "log": 0.3672,
+      "log_difference": 0.0141
+    },
+    "kpss_p_values": {
+      "level": 0.021,
+      "log": 0.01,
+      "log_difference": 0.1
+    },
+    "outliers": [
+      {
+        "month": "2021-08",
+        "change_pct": 6.56,
+        "robust_z": 3.59
+      },
+      {
+        "month": "2021-09",
+        "change_pct": 5.72,
+        "robust_z": 3.14
+      },
+      {
+        "month": "2021-11",
+        "change_pct": 9.44,
+        "robust_z": 5.12
+      },
+      {
+        "month": "2021-12",
+        "change_pct": 9.9,
+        "robust_z": 5.37
+      },
+      {
+        "month": "2022-01",
+        "change_pct": 6.06,
+        "robust_z": 3.32
+      },
+      {
+        "month": "2022-04",
+        "change_pct": 11.21,
+        "robust_z": 6.05
+      },
+      {
+        "month": "2022-05",
+        "change_pct": 6.29,
+        "robust_z": 3.45
+      },
+      {
+        "month": "2023-07",
+        "change_pct": -6.8,
+        "robust_z": -4.12
+      },
+      {
+        "month": "2023-08",
+        "change_pct": -5.19,
+        "robust_z": -3.14
+      },
+      {
+        "month": "2026-04",
+        "change_pct": 6.32,
+        "robust_z": 3.46
+      },
+      {
+        "month": "2026-05",
+        "change_pct": 5.8,
+        "robust_z": 3.18
+      }
+    ],
+    "describe_total": {
+      "count": 93.0,
+      "mean": 142.829,
+      "std": 39.749,
+      "min": 90.671,
+      "25%": 101.214,
+      "50%": 144.015,
+      "75%": 164.25,
+      "max": 224.145
+    },
+    "describe_log_change_pct": {
+      "count": 92.0,
+      "mean": 0.646,
+      "std": 2.976,
+      "min": -7.038,
+      "25%": -0.608,
+      "50%": 0.12,
+      "75%": 1.404,
+      "max": 10.626
+    }
+  },
+  "partitions": {
+    "observations": 93,
+    "minimum_training_months": 36,
+    "horizon": 6,
+    "training_initial": [
+      "2018-12",
+      "2021-11"
+    ],
+    "validation_origins": [
+      "2021-11",
+      "2025-02",
+      40
+    ],
+    "test_origins": [
+      "2025-03",
+      "2026-02",
+      12
+    ],
+    "test_targets": [
+      "2025-04",
+      "2026-08"
+    ],
+    "final_refit": [
+      "2018-12",
+      "2026-08"
+    ],
+    "forecasts_per_model": {
+      "validation": 240,
+      "test": 72
+    }
+  },
+  "tuning": {
+    "sarima": [
+      {
+        "order": "(1, 1, 1)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -471.466
+      },
+      {
+        "order": "(1, 1, 0)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -471.212
+      },
+      {
+        "order": "(2, 1, 0)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -470.743
+      },
+      {
+        "order": "(1, 1, 2)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -470.377
+      },
+      {
+        "order": "(1, 1, 1)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -469.852
+      },
+      {
+        "order": "(2, 1, 1)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -469.433
+      },
+      {
+        "order": "(1, 1, 0)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -469.353
+      },
+      {
+        "order": "(2, 1, 0)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -469.021
+      },
+      {
+        "order": "(2, 1, 2)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -468.797
+      },
+      {
+        "order": "(1, 1, 2)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -468.699
+      },
+      {
+        "order": "(2, 1, 1)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -467.632
+      },
+      {
+        "order": "(2, 1, 2)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -467.01
+      },
+      {
+        "order": "(0, 1, 2)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -462.948
+      },
+      {
+        "order": "(0, 1, 2)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -460.762
+      },
+      {
+        "order": "(0, 1, 1)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -440.878
+      },
+      {
+        "order": "(0, 1, 1)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -439.433
+      },
+      {
+        "order": "(0, 1, 0)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -380.281
+      },
+      {
+        "order": "(0, 1, 0)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -378.262
+      }
+    ],
+    "sarima_last_validation_origin": [
+      {
+        "order": "(1, 1, 0)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -377.329
+      },
+      {
+        "order": "(1, 1, 2)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -376.622
+      },
+      {
+        "order": "(1, 1, 1)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -375.63
+      },
+      {
+        "order": "(2, 1, 0)",
+        "seasonal_order": "(0, 0, 0, 0)",
+        "aicc": -375.405
+      },
+      {
+        "order": "(1, 1, 0)",
+        "seasonal_order": "(1, 0, 0, 12)",
+        "aicc": -375.327
+      }
+    ],
+    "ets": [
+      {
+        "specification": "Damped additive trend",
+        "aicc": -470.121
+      },
+      {
+        "specification": "Additive trend",
+        "aicc": -463.083
+      },
+      {
+        "specification": "No trend",
+        "aicc": -381.202
+      }
+    ],
+    "ridge": {
+      "h1": [
+        {
+          "alpha": 0.1,
+          "cv_mae_log_change": 0.011
+        },
+        {
+          "alpha": 1.0,
+          "cv_mae_log_change": 0.01104
+        },
+        {
+          "alpha": 10.0,
+          "cv_mae_log_change": 0.01149
+        },
+        {
+          "alpha": 100.0,
+          "cv_mae_log_change": 0.01215
+        },
+        {
+          "alpha": 1000.0,
+          "cv_mae_log_change": 0.01341
+        }
+      ],
+      "h1_selected": 0.1,
+      "training_rows_h1": 80,
+      "h6": [
+        {
+          "alpha": 0.1,
+          "cv_mae_log_change": 0.0821
+        },
+        {
+          "alpha": 1.0,
+          "cv_mae_log_change": 0.07997
+        },
+        {
+          "alpha": 10.0,
+          "cv_mae_log_change": 0.07914
+        },
+        {
+          "alpha": 100.0,
+          "cv_mae_log_change": 0.07234
+        },
+        {
+          "alpha": 1000.0,
+          "cv_mae_log_change": 0.05274
+        }
+      ],
+      "h6_selected": 1000.0,
+      "training_rows_h6": 75,
+      "features": [
+        "y_var_1",
+        "y_var_2",
+        "y_var_3",
+        "y_var_6",
+        "y_var_12",
+        "trm_var_1",
+        "trm_var_3",
+        "trm_var_6",
+        "urea_usd_var_1",
+        "urea_usd_var_3",
+        "urea_usd_var_6",
+        "dap_usd_var_1",
+        "dap_usd_var_3",
+        "dap_usd_var_6",
+        "mes_sen",
+        "mes_cos"
+      ]
+    }
+  },
+  "selected_specification": {
+    "order": "(1, 1, 1)",
+    "seasonal_order": "(0, 0, 0, 0)",
+    "aicc": -471.466
+  },
+  "residual_diagnostics": {
+    "ljung_box_p_lag6": 0.057,
+    "ljung_box_p_lag12": 0.1094,
+    "residual_mean": 0.00123,
+    "residual_std": 0.01809
+  },
+  "fit_gap": [
+    {
+      "model": "Persistence",
+      "in_sample_one_step_mase": 1.0,
+      "validation_h1_mase": 1.448,
+      "test_h1_mase": 0.273
+    },
+    {
+      "model": "ETS",
+      "in_sample_one_step_mase": 0.507,
+      "validation_h1_mase": 0.839,
+      "test_h1_mase": 0.34
+    },
+    {
+      "model": "SARIMA",
+      "in_sample_one_step_mase": 0.515,
+      "validation_h1_mase": 0.788,
+      "test_h1_mase": 0.34
+    }
+  ],
+  "bias": [
+    {
+      "model": "ets",
+      "block": "test",
+      "mean_error_pct": -2.5,
+      "median_error_pct": -0.57
+    },
+    {
+      "model": "ets",
+      "block": "validation",
+      "mean_error_pct": 3.58,
+      "median_error_pct": 0.36
+    },
+    {
+      "model": "naive",
+      "block": "test",
+      "mean_error_pct": -2.93,
+      "median_error_pct": -0.76
+    },
+    {
+      "model": "naive",
+      "block": "validation",
+      "mean_error_pct": 1.93,
+      "median_error_pct": 1.45
+    },
+    {
+      "model": "ridge",
+      "block": "test",
+      "mean_error_pct": -0.85,
+      "median_error_pct": 0.82
+    },
+    {
+      "model": "ridge",
+      "block": "validation",
+      "mean_error_pct": 6.41,
+      "median_error_pct": 3.47
+    },
+    {
+      "model": "sarima",
+      "block": "test",
+      "mean_error_pct": -2.51,
+      "median_error_pct": -0.57
+    },
+    {
+      "model": "sarima",
+      "block": "validation",
+      "mean_error_pct": 3.23,
+      "median_error_pct": 0.29
+    },
+    {
+      "model": "snaive",
+      "block": "test",
+      "mean_error_pct": -6.91,
+      "median_error_pct": -6.72
+    },
+    {
+      "model": "snaive",
+      "block": "validation",
+      "mean_error_pct": 3.68,
+      "median_error_pct": 4.66
+    }
+  ],
+  "selected_test_by_horizon": [
+    {
+      "horizon": 1,
+      "mae": 1.034,
+      "rmse": 1.229,
+      "mase": 0.34
+    },
+    {
+      "horizon": 2,
+      "mae": 2.57,
+      "rmse": 3.419,
+      "mase": 0.857
+    },
+    {
+      "horizon": 3,
+      "mae": 4.309,
+      "rmse": 6.784,
+      "mase": 1.457
+    },
+    {
+      "horizon": 4,
+      "mae": 6.619,
+      "rmse": 10.13,
+      "mase": 2.238
+    },
+    {
+      "horizon": 5,
+      "mae": 8.604,
+      "rmse": 12.47,
+      "mase": 2.9
+    },
+    {
+      "horizon": 6,
+      "mae": 9.598,
+      "rmse": 13.782,
+      "mase": 3.228
+    }
+  ],
+  "model_names": {
+    "naive": "Persistence (baseline)",
+    "snaive": "Seasonal naive (baseline)",
+    "ets": "Exponential smoothing (ETS)",
+    "sarima": "SARIMA",
+    "ridge": "Direct Ridge with external variables"
+  }
+}

@@ -61,7 +61,7 @@ prices and quantities). All foreign keys are indexed.
 
 ## 5. Model integration
 
-- Artifact: `models/sarima_v1.0.0.joblib` (+ model card `.json`). Contains, for the total, fertilizer
+- Artifacts: `models/sarima_v1.0.0.joblib` and `models/sarima_v1.1.0.joblib` (active), each with a model card `.json`. Contains, for the total, fertilizer
   and pesticide series, the SARIMA order, seasonal order, fitted parameters, training window, AICc and
   the reference distribution of monthly log changes, plus the Activity 1 selection metrics.
 - Preprocessing preserved: monthly frequency (month start), natural logarithm, d = 1, same
@@ -71,8 +71,8 @@ prices and quantities). All foreign keys are indexed.
   `index_observation` and returns the six-month path with 80% and 95% intervals.
 - Decision rule (`recommend`): change ≥ +3% → buy now; ≤ −3% → defer; otherwise buy as planned.
   Confidence is "low" when the 80% interval of the change contains zero.
-- Traceability: version 1.0.0 reproduces the Activity 1 forecast (index 149.63 vs 149.62 in
-  `reports/resultados.json` for February 2027).
+- Traceability: version 1.1.0 reproduces the pipeline forecast exactly (index 149.628 for February
+  2027 in `reports/resultados.json`); version 1.0.0 gives the same value.
 
 ### Inference API
 

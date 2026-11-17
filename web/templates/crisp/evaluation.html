@@ -1,0 +1,82 @@
+{% extends 'crisp/_layout.html' %}
+{% set r = results %}{% set sel = r.modelo_seleccionado %}
+{% block lead %}Metrics and temporal cross-validation, model comparison, overfitting and bias analysis, domain review, model selection and the final result on the independent test block.{% endblock %}
+{% block phase %}
+<div class="grid-2">
+  <div class="cardx"><h2>Metrics and why they were chosen</h2><ul class="muted small">
+    <li><strong>MAE</strong> (index points): average size of the error, easy to explain to users.</li>
+    <li><strong>RMSE</strong> (index points): penalizes large misses, which are the costly ones for a purchase budget.</li>
+    <li><strong>MASE</strong>: MAE divided by the one-month persistence error inside the training window. It has no units, can be averaged over horizons and origins, and compares directly with persistence. Main selection metric.</li>
+    <li><strong>Diebold-Mariano test</strong> (with small-sample correction) at six months: checks whether the difference with persistence is statistically significant.</li>
+    <li><strong>Interval coverage</strong>: share of actual values inside the 80% and 95% ranges.</li></ul>
+    <p class="small muted">MAPE was not used as the main metric because it is asymmetric; percentage errors are still shown in the bias analysis.</p></div>
+  <div class="cardx"><h2>Cross-validation for time series</h2>
+    <p class="muted small">K-fold cross-validation shuffles months and lets a model learn from the future. AGROCAST uses <strong>rolling-origin evaluation with an expanding window</strong>: the model is fitted with data up to month t, forecasts t+1 … t+6, then the origin moves one month and everything is refitted.</p>
+    <div class="kpi-grid three">
+      <div class="kpi"><div class="label">Validation origins</div><div class="value">{{ r.origenes.validacion }}</div><div class="note">{{ r.origenes.validacion_desde }} to {{ r.origenes.validacion_hasta }}</div></div>
+      <div class="kpi"><div class="label">Test origins</div><div class="value">{{ r.origenes.prueba }}</div><div class="note">{{ r.origenes.prueba_desde }} to {{ r.origenes.prueba_hasta }}</div></div>
+      <div class="kpi"><div class="label">Forecasts per model</div><div class="value">{{ (r.origenes.validacion + r.origenes.prueba) * 6 }}</div><div class="note">6 horizons per origin</div></div>
+    </div></div>
+</div>
+
+<div class="cardx mt-3"><h2>Model comparison</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Model</th><th>MASE val.</th><th>MAE val.</th><th>RMSE val.</th><th>MASE test</th><th>MAE test</th><th>RMSE test</th><th>Better than persistence (val. / test)</th></tr></thead><tbody>
+    {% for key, m in r.resumen.items() %}<tr{% if key == sel %} class="row-highlight"{% endif %}><td>{{ m.nombre }}{% if key == sel %} <span class="tag">Selected</span>{% endif %}</td><td>{{ m.validacion.mase }}</td><td>{{ m.validacion.mae }}</td><td>{{ m.validacion.rmse }}</td><td>{{ m.prueba.mase }}</td><td>{{ m.prueba.mae }}</td><td>{{ m.prueba.rmse }}</td>
+      <td>{% if key in r.pct_pronosticos_mejor_que_persistencia %}{{ r.pct_pronosticos_mejor_que_persistencia[key].validacion }}% / {{ r.pct_pronosticos_mejor_que_persistencia[key].prueba }}%{% else %}—{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <img class="figure-img mt-3" src="{{ url_for('crisp_figure', name='mase_by_horizon') }}" alt="MASE by horizon in validation and test">
+  <img class="figure-img mt-3" src="{{ url_for('crisp_figure', name='error_distribution') }}" alt="Error distribution by model">
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Overfitting and underfitting</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Model</th><th>In-sample one-step MASE</th><th>Validation h=1</th><th>Test h=1</th></tr></thead><tbody>
+      {% for g in ev.fit_gap %}<tr><td>{{ g.model }}</td><td>{{ g.in_sample_one_step_mase }}</td><td>{{ g.validation_h1_mase }}</td><td>{{ g.test_h1_mase }}</td></tr>{% endfor %}</tbody></table></div>
+    <ul class="muted small mt-2">
+      <li>ETS and SARIMA have an in-sample error about 1.5 times lower than their one-month validation error. The gap is moderate and expected for a series with a large shock; with 2 to 4 parameters there is little room for overfitting.</li>
+      <li>Ridge is the most flexible model and is the one that loses to persistence in both blocks: with 16 features and fewer than 80 rows, its extra flexibility does not generalize.</li>
+      <li>No underfitting signal: SARIMA residuals show no significant autocorrelation (Ljung-Box p = {{ ev.residual_diagnostics.ljung_box_p_lag6 }} at lag 6 and {{ ev.residual_diagnostics.ljung_box_p_lag12 }} at lag 12).</li></ul>
+    <img class="figure-img mt-2" src="{{ url_for('crisp_figure', name='residuals') }}" alt="SARIMA residuals and autocorrelation"></div>
+  <div class="cardx"><h2>Bias and relevant risks</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Model</th><th>Block</th><th>Mean error %</th><th>Median error %</th></tr></thead><tbody>
+      {% for b in ev.bias if b.model in ('naive', 'ets', 'sarima', 'ridge') %}<tr><td>{{ {"naive":"Persistence","ets":"ETS","sarima":"SARIMA","ridge":"Ridge"}[b.model] }}</td><td>{{ b.block }}</td><td>{{ b.mean_error_pct }}</td><td>{{ b.median_error_pct }}</td></tr>{% endfor %}</tbody></table></div>
+    <ul class="muted small mt-2">
+      <li>Positive error = forecast above the actual value. A model that follows the latest trend overestimates after a peak and underestimates during a fast rise; this is visible in 2021-2022 and in April-May 2026.</li>
+      <li><strong>Risks:</strong> a new international shock, a change of the UPRA methodology or basket, and the short test block (12 origins), which is too small to generalize.</li>
+      <li>The model forecasts an index, not the price a producer pays; the product price in each plan comes from SIPSA-I.</li></ul></div>
+</div>
+
+<div class="cardx mt-3"><h2>Domain review</h2>
+  {% if review %}
+  <p class="muted small">Reviewed with <strong>{{ review.name }}</strong>, {{ review.role }}, on {{ review.date }} ({{ review.format }}).</p>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Topic</th><th>Feedback</th><th>Action taken</th></tr></thead><tbody>
+    {% for f in review.feedback %}<tr><td>{{ f.topic }}</td><td>{{ f.comment }}</td><td>{{ f.action }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}
+  <p class="muted small">The domain review is recorded in <code>reports/crisp/domain_review.json</code> and shown here once it is registered.</p>
+  {% endif %}
+</div>
+
+<div class="grid-2 mt-3">
+  <div class="cardx"><h2>Model selection</h2>
+    <p class="muted small">Rule fixed before looking at the test block: <strong>lowest validation MASE among ETS, SARIMA and Ridge; persistence if none beats it.</strong></p>
+    <div class="callout"><strong>Selected: {{ r.nombre_modelo }}</strong> — validation MASE {{ r.resumen[sel].validacion.mase }} vs persistence {{ r.resumen.naive.validacion.mase }} (better in {{ r.pct_pronosticos_mejor_que_persistencia[sel].validacion }}% of validation forecasts). Specification with all data: order {{ ev.selected_specification.order }}, seasonal {{ ev.selected_specification.seasonal_order }}.</div></div>
+  <div class="cardx"><h2>Final result on the independent test</h2>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Horizon</th>{% for h in ev.selected_test_by_horizon %}<th>{{ h.horizon }}</th>{% endfor %}</tr></thead><tbody>
+      <tr><td>MAE</td>{% for h in ev.selected_test_by_horizon %}<td>{{ h.mae }}</td>{% endfor %}</tr>
+      <tr><td>MASE</td>{% for h in ev.selected_test_by_horizon %}<td>{{ h.mase }}</td>{% endfor %}</tr></tbody></table></div>
+    <p class="muted small mt-2">Overall test: MASE {{ r.resumen[sel].prueba.mase }} (persistence {{ r.resumen.naive.prueba.mase }}), MAE {{ r.resumen[sel].prueba.mae }}, RMSE {{ r.resumen[sel].prueba.rmse }} (persistence {{ r.resumen.naive.prueba.rmse }}). Diebold-Mariano at six months: p = {{ r.diebold_mariano_h6[sel].prueba.p_valor }}. Interval coverage: {{ r.cobertura_prueba_pct['80'] }}% (nominal 80%) and {{ r.cobertura_prueba_pct['95'] }}% (nominal 95%).</p></div>
+</div>
+<div class="cardx mt-3"><h2>Independent test: actual vs forecast</h2>
+  <img class="figure-img" src="{{ url_for('crisp_figure', name='test_actual_vs_predicted') }}" alt="Actual values and forecasts in the test block">
+</div>
+
+<div class="cardx mt-3"><h2>Success criteria</h2>
+  <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Criterion</th><th>Result</th><th>Status</th></tr></thead><tbody>
+    <tr><td>Beats persistence in validation</td><td>MASE {{ r.resumen[sel].validacion.mase }} vs {{ r.resumen.naive.validacion.mase }}</td><td><span class="tag">Met</span></td></tr>
+    <tr><td>Improvement holds on the independent test</td><td>MASE {{ r.resumen[sel].prueba.mase }} vs {{ r.resumen.naive.prueba.mase }}; DM p = {{ r.diebold_mariano_h6[sel].prueba.p_valor }}</td><td><span class="tag tag-warn">Not met</span></td></tr>
+    <tr><td>80% interval coverage ≥ 80% on test</td><td>{{ r.cobertura_prueba_pct['80'] }}%</td><td><span class="tag">Met</span></td></tr>
+    <tr><td>Inference under 3 seconds, logged with version</td><td>See phase 5 (published system)</td><td><span class="tag">Met</span></td></tr>
+  </tbody></table></div>
+  <p class="muted small mt-2"><strong>Reading.</strong> SARIMA improves persistence during the volatile validation period but not during the calmer test period, where persistence is very hard to beat; the difference is not significant in either block. The models were not refitted after looking at the test block, so the test result remains valid. The model is deployed as a decision aid with its uncertainty shown, and the monitoring plan (phase 6) tracks whether it keeps adding value over persistence.</p>
+</div>
+{% endblock %}

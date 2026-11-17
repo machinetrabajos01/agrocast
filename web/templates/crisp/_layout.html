@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-page">
+  <div class="page-head"><div>
+    <div class="eyebrow">CRISP-ML · Phase {{ phase[1] }} of 6 · Data cut-off {{ ev.data_cutoff or results.fecha_corte }}</div>
+    <h1>{{ phase[2] }}</h1>
+    <p>{% block lead %}{% endblock %}</p>
+  </div></div>
+  <nav class="phase-tabs" aria-label="CRISP-ML phases">
+    {% for slug, n, name, icon in phases %}
+    <a class="phase-tab {{ 'active' if slug == phase[0] }}" href="{{ url_for('crisp_phase', phase=slug) }}"><i class="bi {{ icon }}"></i><span><small>Phase {{ n }}</small>{{ name }}</span></a>
+    {% endfor %}
+  </nav>
+  {% block phase %}{% endblock %}
+  <div class="phase-pager">
+    {% if prev %}<a class="btn btn-ghost" href="{{ url_for('crisp_phase', phase=prev[0]) }}"><i class="bi bi-arrow-left"></i> {{ prev[1] }}. {{ prev[2] }}</a>{% else %}<span></span>{% endif %}
+    {% if next %}<a class="btn btn-ghost" href="{{ url_for('crisp_phase', phase=next[0]) }}">{{ next[1] }}. {{ next[2] }} <i class="bi bi-arrow-right"></i></a>{% endif %}
+  </div>
+</div>
+{% endblock %}

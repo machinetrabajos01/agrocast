@@ -49,11 +49,11 @@ def _figuras(y, bt, metricas, elegido, pron):
     verde, azul, gris = "#1f5c4a", "#2f5f8f", "#8a938e"
 
     fig, ax = plt.subplots(figsize=(9, 4))
-    ax.plot(y.index, y, color=verde, lw=2, label="Índice observado")
+    ax.plot(y.index, y, color=verde, lw=2, label="Observed index")
     fechas = pd.to_datetime([p["fecha"] for p in pron])
-    ax.plot(fechas, [p["valor"] for p in pron], color=azul, lw=2, label=f"Pronóstico: {NOMBRES[elegido]}")
-    ax.fill_between(fechas, [p["li80"] for p in pron], [p["ls80"] for p in pron], color=azul, alpha=.2, label="Intervalo 80 %")
-    ax.set_ylabel("Índice (ene. 2021 = 100)")
+    ax.plot(fechas, [p["valor"] for p in pron], color=azul, lw=2, label=f"Forecast: {NOMBRES[elegido]}")
+    ax.fill_between(fechas, [p["li80"] for p in pron], [p["ls80"] for p in pron], color=azul, alpha=.2, label="80% interval")
+    ax.set_ylabel("Index (Jan 2021 = 100)")
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(frameon=False)
     fig.tight_layout()
@@ -66,8 +66,8 @@ def _figuras(y, bt, metricas, elegido, pron):
         sub = metricas[(metricas.bloque == bloque) & (metricas.horizonte > 0)]
         for m, g in sub.groupby("modelo"):
             ax.plot(g.horizonte, g.mase, marker="o", color=colores[m], label=NOMBRES[m])
-        ax.set_title(f"MASE por horizonte: {bloque}")
-        ax.set_xlabel("Meses adelante")
+        ax.set_title(f"MASE by horizon: {'validation' if bloque == 'validacion' else 'test'}")
+        ax.set_xlabel("Months ahead")
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].legend(frameon=False, fontsize=7)
     fig.tight_layout()

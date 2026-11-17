@@ -160,3 +160,33 @@ def test_admin_cannot_change_own_role(app):
         assert db.session.get(User, admin_id).role == "admin"
     for path in ("/admin/users", "/admin/models", "/admin/logs", "/indicators", "/history"):
         assert c.get(path).status_code == 200, path
+
+
+def test_crisp_phase_pages_are_public(app):
+    c = app.test_client()
+    for slug in ("business-data", "data-engineering", "model-engineering", "evaluation", "deployment", "monitoring"):
+        r = c.get(f"/crisp-ml/{slug}")
+        assert r.status_code == 200, slug
+    assert c.get("/crisp-ml/unknown").status_code == 404
+    assert c.get("/crisp-ml/figure/partitions.png").status_code == 200
+    assert c.get("/crisp-ml/figure/..%2Fapp.png").status_code == 404
+    assert c.get("/crisp-ml/download/app.py").status_code == 404
+    assert b"SIMULATED" in c.get("/crisp-ml/monitoring").data
+
+
+def test_public_demo_accepts_new_values_and_rejects_bad_input(app):
+    c = app.test_client()
+    token = csrf(c, "/crisp-ml/deployment")
+    ok = c.post("/crisp-ml/deployment/demo", data={"_csrf": token, "series": "fertilizantes", "horizon": "3",
+                                                   "new_0": "150", "new_1": "151.5"})
+    assert ok.status_code == 200
+    html = ok.get_data(as_text=True)
+    assert "2 typed by the user" in html and "Recommendation" in html
+    bad = c.post("/crisp-ml/deployment/demo", data={"_csrf": token, "series": "total", "horizon": "6", "new_0": "-4"})
+    assert bad.status_code == 422
+    text = c.post("/crisp-ml/deployment/demo", data={"_csrf": token, "series": "total", "horizon": "6", "new_0": "abc"})
+    assert text.status_code == 422
+    assert c.post("/crisp-ml/deployment/demo", data={"series": "total"}).status_code == 400
+    with app.app_context():
+        events = {e.event for e in EventLog.query.all()}
+    assert {"demo.forecast", "demo.rejected_input"} <= events
