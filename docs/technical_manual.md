@@ -123,10 +123,10 @@ See `docs/monitoring_maintenance.md` for the monitoring procedures.
 
 ## 8. Testing
 
-`python -m pytest` runs 30 tests: 15 pipeline tests (temporal leakage, metrics, models) and 15
+`python -m pytest` runs 31 tests: 16 pipeline tests (temporal leakage, metrics, models) and 15
 integration tests of the information system (protected routes, CSRF, role escalation, complete
 workflow, business rules, analyst API, admin restrictions, CRISP-ML pages and demo, food catalog,
-shopping lists, PDF, list ownership, legal pages, consent, data export and deletion, login throttling).
+shopping lists, PDF, list ownership, legal pages, consent, data export and deletion, login throttling, PGC homepage).
 
 ## 9. Deployment and operations
 
