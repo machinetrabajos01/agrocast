@@ -60,6 +60,19 @@ oil per litre).
 Chained index per group built from the median monthly change of comparable SIPSA-I series. Used to check
 the trend of the UPRA sub-indices; it is not an official index.
 
+### Food prices (`food_*.csv`, built by `src/food_prices.py`)
+
+| File | Content |
+|---|---|
+| `food_daily.csv` | DANE daily bulletin: `price_date`, `food_group`, `product`, `market`, `city`, `price` ($/kg), last 45 days |
+| `food_monthly_national.csv` | National monthly median price of every product since 2018 (`month`, `price`, `n_markets`) |
+| `food_monthly_market.csv` | Monthly price by `market`, `city` and `department`, last 13 months |
+| `food_forecast.csv` | 3-month forecast per product: `horizon`, `month`, `value`, `lo80`, `hi80` |
+| `food_outlook.csv` | Latest price, 24-month range and position, 3-month change, model, errors, `recommendation` (buy / wait / normal) and `reason` |
+
+The same data is loaded every day into the database tables `food_product`, `food_price`,
+`food_forecast` and `food_outlook`. Shopping lists are stored in `shopping_list` and `shopping_item`.
+
 ## Reports (`reports/`)
 
 | File | Content |

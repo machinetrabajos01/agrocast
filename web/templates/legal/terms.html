@@ -1,0 +1,27 @@
+{% extends 'legal/_layout.html' %}
+{% block legal %}
+<h2>1. Purpose of the service</h2>
+<p>AGROCAST is a free academic tool that helps plan the purchase of agricultural inputs and food. It shows official prices published by DANE (SIPSA) and UPRA, and forecasts produced by statistical models.</p>
+
+<h2>2. Nature of the information</h2>
+<ul>
+  <li>Prices are <strong>wholesale</strong> prices reported by DANE for specific markets and dates; retail prices are usually higher and vary between stores.</li>
+  <li>Forecasts and recommendations ("Buy now", "Wait", "Defer") are estimates with uncertainty. They are a decision aid, not financial or commercial advice, and do not guarantee any future price.</li>
+  <li>Data depend on the publication of the official sources; a product may not have a recent price on a given day.</li>
+</ul>
+
+<h2>3. Accounts</h2>
+<p>You must provide true data, keep your password confidential and report any unauthorized use through Support &amp; Feedback. Self-registration creates producer accounts; analyst and administrator roles are assigned by an administrator.</p>
+
+<h2>4. Acceptable use</h2>
+<p>It is not allowed to attempt to access data of other users, to bypass security controls, to send automated mass requests, or to use the service for unlawful purposes. Accounts that do so may be suspended.</p>
+
+<h2>5. Intellectual property and sources</h2>
+<p>Official data belong to DANE, UPRA, the Financial Superintendence and the World Bank and are used under their open data terms, citing the source. The source code of AGROCAST is available in its public repository for academic purposes.</p>
+
+<h2>6. Liability</h2>
+<p>AGROCAST is provided "as is" for academic purposes. Purchase decisions remain the responsibility of each user. The service may be interrupted for maintenance or because of the hosting provider.</p>
+
+<h2>7. Applicable law</h2>
+<p>These terms are governed by the laws of the Republic of Colombia. The processing of personal data follows the <a href="{{ url_for('legal', page='privacy') }}">privacy and personal data policy</a>.</p>
+{% endblock %}

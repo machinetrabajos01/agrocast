@@ -1,7 +1,8 @@
 """Database setup commands.
 
     flask --app app init-db            create tables (SQLite only; Postgres uses the Supabase migration)
-    flask --app app seed               load index history, product prices and the model version
+    flask --app app seed               load index history, product prices, food prices and the model version
+    flask --app app update-prices      download the latest DANE food prices and load them (daily job)
     flask --app app create-user        create an account with a given role (asks for the password)
 """
 from __future__ import annotations
@@ -68,6 +69,15 @@ def seed_model_versions():
     db.session.commit()
 
 
+def seed_food():
+    """Loads the food price snapshots of data/processed/food_*.csv (no download)."""
+    from src.food_prices import load_into_db, load_snapshots
+    frames = load_snapshots()
+    if len(frames) < 5:
+        return {"skipped": "food snapshots not found; run python -m src.food_prices build"}
+    return load_into_db(frames, source_note="snapshot in repository")
+
+
 def register_commands(app):
 
     @app.cli.command("init-db")
@@ -84,8 +94,14 @@ def register_commands(app):
             db.create_all()
         click.echo(f"Index observations added: {seed_index()}")
         click.echo(f"Product prices loaded: {seed_products()}")
+        click.echo(f"Food prices: {seed_food()}")
         seed_model_versions()
         click.echo("Model versions registered: " + ", ".join(v.version for v in ModelVersion.query.all()))
+
+    @app.cli.command("update-prices")
+    def update_prices():
+        from src.food_prices import build, load_into_db
+        click.echo(f"Food prices: {load_into_db(build())}")
 
     @app.cli.command("create-user")
     @click.option("--email", required=True)

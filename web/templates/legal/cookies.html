@@ -1,0 +1,14 @@
+{% extends 'legal/_layout.html' %}
+{% block legal %}
+<p>AGROCAST only uses the cookies that are strictly necessary for the service to work. It does not use analytics, advertising or tracking cookies, and it does not share cookie data with third parties.</p>
+<div class="table-wrap"><table class="table-darkx">
+  <thead><tr><th>Cookie</th><th>Purpose</th><th>Type</th><th>Duration</th></tr></thead>
+  <tbody>
+    <tr><td><code>session</code></td><td>Keeps you signed in and stores the anti-forgery (CSRF) token of the forms. Signed by the server, not readable by scripts (HttpOnly), sent only over HTTPS (Secure), SameSite=Lax.</td><td>Strictly necessary</td><td>Until sign-out, maximum 8 hours</td></tr>
+    <tr><td><code>cookie_notice</code></td><td>Remembers that you have seen the cookie notice so it is not shown again.</td><td>Strictly necessary (preference)</td><td>1 year</td></tr>
+  </tbody></table></div>
+<h2>Third-party resources</h2>
+<p>Fonts (Google Fonts) and interface libraries (jsDelivr) are downloaded by your browser from those providers. AGROCAST does not set cookies for them; their own policies apply to the technical data of the request.</p>
+<h2>How to manage cookies</h2>
+<p>You can delete or block cookies in the settings of your browser. If you block the <code>session</code> cookie you will not be able to sign in or submit forms.</p>
+{% endblock %}

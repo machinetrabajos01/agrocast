@@ -67,6 +67,8 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     last_login_at = db.Column(db.DateTime(timezone=True))
+    consent_at = db.Column(db.DateTime(timezone=True))
+    consent_version = db.Column(db.Text)
 
 
 class ModelVersion(db.Model):
@@ -253,3 +255,101 @@ class EventLog(db.Model):
     detail = db.Column(JsonType, nullable=False, default=dict)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     user = db.relationship("User")
+
+
+# ---------------------------------------------------------------- food prices (DANE SIPSA), refreshed daily
+
+FOOD_FREQUENCIES = ("daily", "monthly", "national")
+RECOMMENDATION_LABELS = {"buy": "Buy now", "wait": "Wait", "normal": "Normal price"}
+
+
+class FoodProduct(db.Model):
+    __tablename__ = "food_product"
+    __table_args__ = _args()
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    name = db.Column(db.Text, nullable=False, unique=True)
+    food_group = db.Column(db.Text, nullable=False)
+    unit = db.Column(db.Text, nullable=False, default="1 kilogramo")
+    has_daily = db.Column(db.Boolean, nullable=False, default=False)
+    outlook = db.relationship("FoodOutlook", uselist=False, lazy="joined")
+
+
+class FoodPrice(db.Model):
+    __tablename__ = "food_price"
+    __table_args__ = _args(UniqueConstraint("product_id", "frequency", "price_date", "market"))
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    product_id = db.Column(db.BigInteger, ForeignKey(f"{P}food_product.id", ondelete="CASCADE"), nullable=False, index=True)
+    frequency = db.Column(db.Text, nullable=False)
+    price_date = db.Column(db.Date, nullable=False)
+    market = db.Column(db.Text, nullable=False)
+    city = db.Column(db.Text)
+    department = db.Column(db.Text)
+    price = db.Column(db.Numeric(14, 2), nullable=False)
+
+
+class FoodForecast(db.Model):
+    __tablename__ = "food_forecast"
+    __table_args__ = _args(UniqueConstraint("product_id", "horizon"))
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    product_id = db.Column(db.BigInteger, ForeignKey(f"{P}food_product.id", ondelete="CASCADE"), nullable=False, index=True)
+    horizon = db.Column(db.SmallInteger, nullable=False)
+    month = db.Column(db.Date, nullable=False)
+    value = db.Column(db.Numeric(14, 2), nullable=False)
+    lo80 = db.Column(db.Numeric(14, 2), nullable=False)
+    hi80 = db.Column(db.Numeric(14, 2), nullable=False)
+
+
+class FoodOutlook(db.Model):
+    __tablename__ = "food_outlook"
+    __table_args__ = _args()
+    product_id = db.Column(db.BigInteger, ForeignKey(f"{P}food_product.id", ondelete="CASCADE"), primary_key=True)
+    last_month = db.Column(db.Date, nullable=False)
+    last_price = db.Column(db.Numeric(14, 2), nullable=False)
+    min_24m = db.Column(db.Numeric(14, 2), nullable=False)
+    max_24m = db.Column(db.Numeric(14, 2), nullable=False)
+    position_24m = db.Column(db.Numeric(6, 3), nullable=False)
+    change_12m_pct = db.Column(db.Numeric(8, 2))
+    change_3m_pct = db.Column(db.Numeric(8, 2), nullable=False)
+    model = db.Column(db.Text, nullable=False)
+    mae_model = db.Column(db.Numeric(14, 2), nullable=False)
+    mae_naive = db.Column(db.Numeric(14, 2), nullable=False)
+    recommendation = db.Column(db.Text, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+
+    @property
+    def label(self):
+        return RECOMMENDATION_LABELS.get(self.recommendation, self.recommendation)
+
+
+class DataRefresh(db.Model):
+    __tablename__ = "data_refresh"
+    __table_args__ = _args()
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    source = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Text, nullable=False)
+    detail = db.Column(JsonType, nullable=False, default=dict)
+    note = db.Column(db.Text)
+    refreshed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+
+class ShoppingList(db.Model):
+    __tablename__ = "shopping_list"
+    __table_args__ = _args()
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    owner_id = db.Column(db.BigInteger, ForeignKey(f"{P}app_user.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = db.Column(db.Text, nullable=False)
+    city = db.Column(db.Text)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    items = db.relationship("ShoppingItem", cascade="all, delete-orphan", lazy="selectin",
+                            order_by="ShoppingItem.id")
+
+
+class ShoppingItem(db.Model):
+    __tablename__ = "shopping_item"
+    __table_args__ = _args(UniqueConstraint("list_id", "product_id"))
+    id = db.Column(db.BigInteger().with_variant(db.Integer, "sqlite"), primary_key=True)
+    list_id = db.Column(db.BigInteger, ForeignKey(f"{P}shopping_list.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = db.Column(db.BigInteger, ForeignKey(f"{P}food_product.id", ondelete="RESTRICT"), nullable=False, index=True)
+    quantity = db.Column(db.Numeric(10, 2), nullable=False)
+    product = db.relationship("FoodProduct", lazy="joined")

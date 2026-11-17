@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}{% set u = current_user %}
+<div class="container-page">
+  <div class="page-head"><div><div class="eyebrow">My account · {{ u.role }}</div><h1>{{ u.full_name }}</h1>
+    <p>Your data, your password and your rights as owner of your personal data (<a href="{{ url_for('legal', page='privacy') }}">privacy policy</a>).</p></div></div>
+
+  <div class="grid-2">
+    <div class="cardx"><h2>Profile</h2>
+      <form method="post" action="{{ url_for('account_profile') }}">{{ csrf_field() }}
+        <label class="form-label" for="full_name">Full name</label>
+        <input class="form-control" id="full_name" name="full_name" value="{{ u.full_name }}" maxlength="80" required>
+        <label class="form-label mt-2" for="department">Department (optional)</label>
+        <input class="form-control" id="department" name="department" value="{{ u.department or '' }}" maxlength="60">
+        <p class="small muted mt-2 mb-2">Email: {{ u.email }} · account created {{ u.created_at.strftime('%Y-%m-%d') }}{% if u.consent_at %} · privacy policy accepted {{ u.consent_at.strftime('%Y-%m-%d %H:%M') }} UTC (version {{ u.consent_version }}){% endif %}</p>
+        <button class="btn btn-accent">Save</button>
+      </form></div>
+    <div class="cardx"><h2>Change password</h2>
+      <form method="post" action="{{ url_for('account_password') }}">{{ csrf_field() }}
+        <label class="form-label" for="current">Current password</label><input class="form-control" type="password" id="current" name="current" autocomplete="current-password" required>
+        <label class="form-label mt-2" for="new">New password</label><input class="form-control" type="password" id="new" name="new" autocomplete="new-password" required>
+        <label class="form-label mt-2" for="confirm">Confirm new password</label><input class="form-control" type="password" id="confirm" name="confirm" autocomplete="new-password" required>
+        <button class="btn btn-accent mt-3">Change password</button>
+      </form></div>
+  </div>
+
+  <div class="grid-2 mt-3">
+    <div class="cardx"><h2>Download my data</h2>
+      <p class="muted small">A JSON file with your account, farms, purchase plans, evaluations, support reports, shopping lists and activity log. Your password is never included.</p>
+      <a class="btn btn-ghost" href="{{ url_for('account_export') }}"><i class="bi bi-download"></i> Download my data</a></div>
+    <div class="cardx danger-zone"><h2>Delete my account</h2>
+      <p class="muted small">Your profile, farms, plans, shopping lists and support reports are erased permanently. Records needed for aggregated statistics stay without any link to you. This cannot be undone.</p>
+      <form method="post" action="{{ url_for('account_delete') }}" data-confirm="Delete your account and your data permanently?">{{ csrf_field() }}
+        <div class="row g-2"><div class="col-md-6"><input class="form-control" name="confirm_text" placeholder="Type DELETE" aria-label="Type DELETE" autocomplete="off" required></div>
+          <div class="col-md-6"><input class="form-control" type="password" name="password" placeholder="Current password" aria-label="Current password" autocomplete="current-password" required></div></div>
+        <button class="btn btn-danger-ghost mt-2"><i class="bi bi-trash"></i> Delete my account</button>
+      </form></div>
+  </div>
+</div>
+{% endblock %}

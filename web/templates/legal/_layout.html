@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-page legal">
+  <div class="page-head"><div><div class="eyebrow">Legal · last updated {{ updated.strftime('%Y-%m-%d') }}</div><h1>{{ title }}</h1></div></div>
+  <nav class="legal-nav">{% for key, name in pages.items() %}<a class="{{ 'active' if name == title }}" href="{{ url_for('legal', page=key) }}">{{ name }}</a>{% endfor %}</nav>
+  <article class="cardx legal-text">{% block legal %}{% endblock %}</article>
+</div>
+{% endblock %}

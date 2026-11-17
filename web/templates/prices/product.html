@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}{% set cur = d.current %}{% set o = d.outlook %}
+<div class="container-page">
+  <div class="page-head"><div>
+    <div class="eyebrow">{{ p.food_group }} · price per {{ p.unit|replace('1 ', '') }}</div>
+    <h1>{{ p.name }}</h1>
+    <p>{% if cur.source == 'daily' %}Prices of the DANE daily bulletin of {{ cur.date.strftime('%Y-%m-%d') }} in {{ cur.rows|length }} wholesale markets (variety that predominates in each market).{% elif cur.source == 'monthly' %}Average prices of {{ cur.date.strftime('%B %Y') }} in {{ cur.rows|length }} wholesale markets (DANE monthly series; this product is not in the daily bulletin).{% else %}No recent price has been published for this product.{% endif %}</p>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('prices_catalog') }}"><i class="bi bi-arrow-left"></i> All products</a></div>
+
+  {% if cur.rows %}{% set best = cur.rows[0] %}
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Lowest price</div><div class="value">${{ '{:,.0f}'.format(best.price|float) }}</div><div class="note">{{ best.market }}</div></div>
+    <div class="kpi"><div class="label">Highest price</div><div class="value">${{ '{:,.0f}'.format(cur.rows[-1].price|float) }}</div><div class="note">{{ cur.rows[-1].market }}</div></div>
+    <div class="kpi"><div class="label">3-month outlook</div><div class="value" style="font-size:1.3rem">{% if o %}{{ o.label }}{% else %}—{% endif %}</div><div class="note">{% if o %}{{ '{:+.1f}'.format(o.change_3m_pct|float) }}% expected (national){% else %}Not enough history to forecast{% endif %}</div></div>
+    <div class="kpi"><div class="label">Two-year range</div><div class="value" style="font-size:1.3rem">{% if o %}${{ '{:,.0f}'.format(o.min_24m|float) }} – ${{ '{:,.0f}'.format(o.max_24m|float) }}{% else %}—{% endif %}</div><div class="note">National monthly median</div></div>
+  </div>
+  {% endif %}
+
+  <div class="grid-2">
+    <div class="cardx"><h2>Price history and forecast</h2>
+      <div class="chart-wrap" style="height:320px"><canvas id="historyChart"></canvas></div>
+      {% if o %}<p class="small muted mt-2">{{ o.reason }} {% if o.model == 'ets' %}Model: exponential smoothing (ETS), chosen because it reduced the error of the last 12 months (MAE ${{ '{:,.0f}'.format(o.mae_model|float) }} vs ${{ '{:,.0f}'.format(o.mae_naive|float) }} for persistence).{% else %}Model: persistence (the latest price is the best estimate); exponential smoothing did not reduce the error of the last 12 months (MAE ${{ '{:,.0f}'.format(o.mae_naive|float) }}).{% endif %} Shaded band: 80% range, from the errors of those 12 months.</p>{% endif %}
+      {% if d.forecast %}<div class="table-wrap mt-2"><table class="table-darkx"><thead><tr><th>Month</th><th>Forecast</th><th>80% range</th></tr></thead><tbody>
+        {% for f in d.forecast %}<tr><td>{{ f.month.strftime('%Y-%m') }}</td><td>${{ '{:,.0f}'.format(f.value|float) }}</td><td>${{ '{:,.0f}'.format(f.lo80|float) }} – ${{ '{:,.0f}'.format(f.hi80|float) }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+    </div>
+    <div class="cardx"><h2>Where it is cheapest</h2>
+      {% if cur.rows %}<div class="table-wrap"><table class="table-darkx"><thead><tr><th>#</th><th>Market</th><th>Department</th><th>Price</th></tr></thead><tbody>
+        {% for r in cur.rows %}<tr{% if loop.first %} class="row-highlight"{% endif %}><td>{{ loop.index }}</td><td>{{ r.market }}</td><td class="small muted">{{ r.department or '' }}</td><td>${{ '{:,.0f}'.format(r.price|float) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<p class="muted">No market reported this product recently.</p>{% endif %}
+      {% if lists %}
+      <form method="post" class="row g-2 mt-3 align-items-end" data-dynamic-action>{{ csrf_field() }}
+        <input type="hidden" name="product_id" value="{{ p.id }}">
+        <div class="col-6"><label class="form-label" for="list_sel">Add to list</label><select class="form-select" id="list_sel" data-action-template="{{ url_for('prices_item_add', list_id=0) }}">{% for l in lists %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+        <div class="col-3"><label class="form-label" for="qty">Quantity</label><input class="form-control" id="qty" name="quantity" inputmode="decimal" value="1" required></div>
+        <div class="col-3"><button class="btn btn-accent w-100">Add</button></div>
+      </form>
+      {% else %}<a class="btn btn-accent mt-3" href="{{ url_for('prices_home') }}">Create a list to calculate costs</a>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+(function(){
+  const hist = {{ d.history|map(attribute='price_date')|map('string')|list|tojson }};
+  const vals = {{ d.history|map(attribute='price')|map('float')|list|tojson }};
+  const fc = {{ d.forecast|map(attribute='month')|map('string')|list|tojson }};
+  const fv = {{ d.forecast|map(attribute='value')|map('float')|list|tojson }};
+  const lo = {{ d.forecast|map(attribute='lo80')|map('float')|list|tojson }};
+  const hi = {{ d.forecast|map(attribute='hi80')|map('float')|list|tojson }};
+  const labels = hist.map(x => x.slice(0, 7)).concat(fc.map(x => x.slice(0, 7)));
+  const pad = new Array(hist.length ? hist.length - 1 : 0).fill(null);
+  const last = vals.length ? [vals[vals.length - 1]] : [];
+  renderChart('historyChart', labels, [
+    {label: 'National monthly price', data: vals, borderColor: '#8bc34a', borderWidth: 2, pointRadius: 0, tension: .25},
+    {label: 'Forecast', data: pad.concat(last, fv), borderColor: '#78a8d9', borderDash: [5, 4], borderWidth: 2, pointRadius: 2},
+    {label: '80% upper', data: pad.concat(last, hi), borderColor: 'rgba(120,168,217,.35)', borderWidth: 1, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(120,168,217,.12)'},
+    {label: '80% lower', data: pad.concat(last, lo), borderColor: 'rgba(120,168,217,.35)', borderWidth: 1, pointRadius: 0}
+  ]);
+})();
+</script>
+{% endblock %}

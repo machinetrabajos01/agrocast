@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-page">
+  <div class="page-head"><div>
+    <div class="eyebrow">Market · DANE SIPSA wholesale prices</div>
+    <h1>Food prices today</h1>
+    <p>Lowest wholesale price of every product. Fresh vegetables, fruits, tubers and plantains use the daily bulletin{% if latest_daily %} (latest: {{ latest_daily.strftime('%Y-%m-%d') }}){% endif %}; grains, meat, dairy and groceries use the latest monthly series. Prices are refreshed automatically every day.</p>
+  </div>
+  <a class="btn btn-accent" href="{{ url_for('prices_home') }}"><i class="bi bi-calculator"></i> Price calculator</a></div>
+
+  <form class="cardx filter-bar" method="get">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6"><label class="form-label" for="q">Search a product</label>
+        <input class="form-control" id="q" name="q" value="{{ q }}" placeholder="e.g. frijol, papa, tomate" maxlength="60"></div>
+      <div class="col-md-4"><label class="form-label" for="group">Group</label>
+        <select class="form-select" id="group" name="group"><option value="">All groups</option>
+          {% for gname in groups %}<option value="{{ gname }}" {{ 'selected' if gname == group }}>{{ gname }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><button class="btn btn-accent w-100"><i class="bi bi-search"></i> Search</button></div>
+    </div>
+  </form>
+
+  <div class="cardx mt-3">
+    <div class="d-flex justify-content-between flex-wrap gap-2"><h2 class="m-0">{{ rows|length }} products</h2>
+      {% if refresh %}<span class="muted small">Database refreshed {{ refresh.refreshed_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>{% endif %}</div>
+    <div class="table-wrap mt-3"><table class="table-darkx">
+      <thead><tr><th>Product</th><th>Group</th><th>Lowest price</th><th>Market</th><th>Date</th><th>Markets</th><th>3-month outlook</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rows %}{% set p = r.product %}
+        <tr>
+          <td><a href="{{ url_for('prices_product', product_id=p.id) }}">{{ p.name }}</a></td>
+          <td class="small muted">{{ p.food_group }}</td>
+          <td>{% if r.best %}<strong>${{ '{:,.0f}'.format(r.best.price|float) }}</strong> <span class="muted small">/ {{ p.unit|replace('1 ', '') }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="small">{{ r.best.market if r.best else '' }}</td>
+          <td class="small">{% if r.date %}{{ r.date.strftime('%Y-%m-%d') }} <span class="tag {{ 'tag-today' if r.source == 'daily' }}">{{ 'today' if r.source == 'daily' else 'month' }}</span>{% endif %}</td>
+          <td>{{ r.markets or '' }}</td>
+          <td>{% if p.outlook %}<span class="tag signal-{{ p.outlook.recommendation }}">{{ p.outlook.label }}</span> <span class="small muted">{{ '{:+.1f}'.format(p.outlook.change_3m_pct|float) }}%</span>{% else %}<span class="muted small">Short history</span>{% endif %}</td>
+          <td><a class="btn btn-sm btn-ghost" href="{{ url_for('prices_product', product_id=p.id) }}">Details</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="muted">No product matches "{{ q }}". Try a shorter word (for example "frijol" or "papa").</td></tr>
+      {% endfor %}
+      </tbody></table></div>
+  </div>
+</div>
+{% endblock %}

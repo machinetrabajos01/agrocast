@@ -42,9 +42,28 @@ entry to see the full forecast path and intervals.
 Report an error, a data problem, a doubtful model result, an access problem or a suggestion. You
 can follow the status of your reports (open, in progress, resolved, closed) and read the resolution.
 
-### Market views
-Six-month forecast, products near their two-year minimum, prices by category and department and
-price evolution by product.
+### Food prices and price calculator (Market → Price Calculator & PDF)
+1. Create a list (for example "Weekly market") and, if you only buy in one city, choose it.
+2. Type part of the name in the filter (for example *frijol*, *papa*, *tomate*), choose the product and
+   the quantity (kilograms; eggs in units, oil in litres) and press **Add**. Repeat for every product.
+3. The table shows, for each product, the cheapest wholesale market, the price per unit and its date
+   (*today* = DANE daily bulletin; *month* = latest monthly series), the cost at that market, the cost at
+   the median market and the 3-month outlook (Buy now = expected to rise, Wait = expected to fall).
+4. The totals show the cost at the cheapest markets, at the median market and how much you save.
+5. **Download PDF** produces the list ordered by saving, ready to print or share.
+
+**Market → Food Prices Today** lists every product (375) with its lowest price; search without accents.
+Open a product to see its price in every market, its history since 2018 and the 3-month forecast with
+its 80% range. Prices are refreshed automatically every day.
+
+### Agricultural input views
+Six-month index forecast, what to buy today, inputs by category, where inputs are cheapest by
+department, input price evolution and product alerts (fertilizers and pesticides, DANE SIPSA-I).
+
+### My account and personal data
+Click your name in the top bar. There you can update your name and department, change your password,
+**download all your data** (JSON) and **delete your account** (type DELETE and your password). The
+privacy policy, terms of use and cookie policy are linked in the footer of every page.
 
 ## Analyst
 

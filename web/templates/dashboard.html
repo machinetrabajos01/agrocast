@@ -3,6 +3,12 @@
   <div class="page-head"><div><div class="eyebrow">{{ current_user.role }} workspace</div><h1>Hello, {{ current_user.full_name.split(' ')[0] }}</h1>
     <p>Latest official index month in the system: <strong>{{ last_month.strftime('%B %Y') if last_month else '—' }}</strong>. Purchase plans can be evaluated for the following six months.</p></div>
     {% if can('plans.manage_own') %}<a class="btn btn-accent" href="{{ url_for('plan_new') }}"><i class="bi bi-plus-lg"></i> New purchase plan</a>{% endif %}</div>
+  <div class="cardx price-banner mb-3">
+    <div><div class="eyebrow">Food prices · DANE SIPSA{% if food_daily %} · daily bulletin {{ food_daily.strftime('%Y-%m-%d') }}{% endif %}</div>
+      <h2 class="mt-1 mb-1">What does your market list cost today?</h2>
+      <p class="muted small m-0">{{ food_products }} products with today's wholesale prices by market and a 3-month forecast. Build a list, find the cheapest market and download the PDF.</p></div>
+    <div class="d-flex gap-2 flex-wrap"><a class="btn btn-accent" href="{{ url_for('prices_home') }}"><i class="bi bi-calculator"></i> Price calculator</a><a class="btn btn-ghost" href="{{ url_for('prices_catalog') }}">Food prices today</a></div>
+  </div>
   {% if can('plans.manage_own') %}
   <div class="kpi-grid">
     <div class="kpi"><div class="label">My farms</div><div class="value">{{ farms }}</div><div class="note"><a class="positive" href="{{ url_for('farms') }}">Manage farms</a></div></div>

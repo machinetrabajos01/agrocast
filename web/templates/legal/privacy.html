@@ -1,0 +1,47 @@
+{% extends 'legal/_layout.html' %}
+{% block legal %}
+<p>This policy explains how AGROCAST processes personal data, in accordance with Colombian Statutory Law 1581 of 2012, Decree 1074 of 2015 (which incorporates Decree 1377 of 2013) and the instructions of the Superintendence of Industry and Commerce (SIC).</p>
+
+<h2>1. Data controller</h2>
+<p>AGROCAST is an academic project of the Machine Learning course of the Systems Engineering program, University of Cundinamarca, Chía extension (Colombia). Requests about personal data are received through the <em>Support &amp; Feedback</em> module (type "access") and through the self-service options of <a href="{{ url_for('account') }}">My account</a>.</p>
+
+<h2>2. Data we collect</h2>
+<ul>
+  <li><strong>Account:</strong> full name, email address, optional department, role, password (stored only as a salted scrypt hash; nobody can read it), date of registration, last sign-in and the date on which you accepted this policy.</li>
+  <li><strong>Information you enter:</strong> farms, purchase plans and their products, decisions, actual purchase prices, shopping lists and support reports.</li>
+  <li><strong>Usage records:</strong> date, page and result of security and business events (sign-in, failed sign-in, evaluations, errors) and response times. We do not store your IP address, location or device fingerprint.</li>
+</ul>
+<p>We do not collect sensitive data (Article 5 of Law 1581) or data of children and adolescents. The service is intended for people of legal age.</p>
+
+<h2>3. Purposes</h2>
+<ul>
+  <li>Create and manage your account and authenticate you.</li>
+  <li>Provide the functions you use: purchase plans, model evaluations, price calculations, PDF lists and support.</li>
+  <li>Keep the service secure (preventing unauthorized access and abuse) and measure its performance.</li>
+  <li>Produce aggregated, anonymous statistics for the academic evaluation of the project.</li>
+</ul>
+<p>Your data is not sold, rented or used for advertising, and it is not shared with third parties except the infrastructure providers listed below, who process it on behalf of AGROCAST.</p>
+
+<h2>4. Processors and international transfer</h2>
+<p>The application is hosted by Render (United States) and the database by Supabase on Amazon Web Services (United States, us-east-1). By accepting this policy you authorize this international transfer, which is made to providers with security and confidentiality obligations. Fonts and interface libraries are loaded from Google Fonts and jsDelivr; these providers receive the technical data of the request (such as your IP address) when your browser downloads them.</p>
+
+<h2>5. Your rights</h2>
+<p>As the owner of the data you can, free of charge:</p>
+<ul>
+  <li>know, update and rectify your data: <a href="{{ url_for('account') }}">My account, Profile</a>;</li>
+  <li>obtain a copy of your data: <a href="{{ url_for('account') }}">My account, Download my data</a> (JSON file);</li>
+  <li>request the deletion of your data and revoke the authorization: <a href="{{ url_for('account') }}">My account, Delete my account</a>;</li>
+  <li>request proof of the authorization you gave (the acceptance date is shown in My account);</li>
+  <li>be informed about the use of your data, and file complaints with the Superintendence of Industry and Commerce after contacting us.</li>
+</ul>
+<p>Queries are answered within ten (10) business days and claims within fifteen (15) business days, as established in Articles 14 and 15 of Law 1581 of 2012. Self-service export and deletion take effect immediately.</p>
+
+<h2>6. Retention</h2>
+<p>Account data is kept while the account is active. When you delete your account, your profile, farms, plans, shopping lists and support reports are erased, and the remaining technical records (for example, a model evaluation used in aggregated statistics) lose any link to you. Usage records are deleted automatically after twelve (12) months.</p>
+
+<h2>7. Security</h2>
+<p>Connections use HTTPS. Passwords are hashed, sessions are signed and expire after eight hours, every form is protected against cross-site request forgery, permissions are checked on the server, repeated failed sign-ins are blocked temporarily, and the database is only reachable by the application server with a dedicated account with minimum privileges.</p>
+
+<h2>8. Changes</h2>
+<p>Changes to this policy are published on this page with a new date. If a change affects the purposes for which you gave your authorization, we will ask for it again.</p>
+{% endblock %}

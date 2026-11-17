@@ -1,0 +1,32 @@
+name: Daily price update
+
+# Downloads the DANE SIPSA daily bulletin and monthly series, the UPRA index and the SIPSA-I input prices,
+# recomputes the food price forecasts and loads everything into the production database.
+on:
+  schedule:
+    - cron: "0 12 * * *"      # 7:00 a.m. Colombia
+    - cron: "30 21 * * 1-6"   # 4:30 p.m. Colombia, after DANE publishes the daily bulletin
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: price-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Update prices, forecasts and index in the database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m src.food_prices update-db

@@ -12,6 +12,8 @@
       <div><label for="confirm">Confirm password</label><input id="confirm" class="form-control" type="password" name="confirm" autocomplete="new-password" required></div>
     </div>
     <p class="small-note">Minimum 8 characters, including letters and numbers. Passwords are stored as salted scrypt hashes.</p>
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="accept_policy" name="accept_policy" value="yes" required>
+      <label class="form-check-label small" for="accept_policy">I have read and accept the <a href="{{ url_for('legal', page='privacy') }}" target="_blank" rel="noopener">privacy and personal data policy</a> (Law 1581 of 2012), the <a href="{{ url_for('legal', page='terms') }}" target="_blank" rel="noopener">terms of use</a> and the <a href="{{ url_for('legal', page='cookies') }}" target="_blank" rel="noopener">cookie policy</a>, and I authorize the processing of my data for the purposes described there.</label></div>
     <button class="btn btn-accent w-100 py-2">Create account</button>
   </form>
   <p class="small muted mt-4 mb-0">Already registered? <a class="positive" href="{{ url_for('login') }}">Sign in</a>.</p>

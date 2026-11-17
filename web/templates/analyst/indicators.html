@@ -16,7 +16,7 @@
       <div class="table-wrap"><table class="table-darkx" style="min-width:300px"><thead><tr><th>Category</th><th>Plans</th><th>Planned (COP)</th></tr></thead><tbody>{% for k, v in by_category.items() %}<tr><td>{{ category_labels[k] }}</td><td>{{ v.plans }}</td><td>{{ '{:,.0f}'.format(v.planned) }}</td></tr>{% endfor %}</tbody></table></div></div>
   </div>
 </div>{% endblock %}
-{% block scripts %}<script>
+{% block scripts %}<script nonce="{{ csp_nonce }}">
 const st = {{ status_counts|tojson }};
 const el = document.getElementById('statusChart');
 if (el) new Chart(el, {type: 'bar', data: {labels: Object.keys(st), datasets: [{label: 'Plans', data: Object.values(st), backgroundColor: '#8bc34a'}]},
