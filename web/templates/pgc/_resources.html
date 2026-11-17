@@ -1,0 +1,14 @@
+<section class="pgc-resources" id="pgc-resources">
+  <div class="page-head"><div><div class="eyebrow">Project resources</div><h2 class="section-title">Report, evidence, code, system, documentation and video</h2></div></div>
+  <div class="resource-grid">
+    {% for r in pgc_resources() %}
+    <div class="cardx resource">
+      <i class="bi {{ r.icon }}"></i>
+      <div><h3>{{ r.title }}</h3><p class="muted small">{{ r.text }}</p>
+        {% if r.href %}<a class="btn btn-sm btn-accent" href="{{ r.href }}" {% if r.external %}target="_blank" rel="noopener noreferrer"{% endif %}>Open <i class="bi bi-arrow-up-right"></i></a>
+        {% else %}<span class="tag tag-warn">Link coming soon</span>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="small muted mt-2">Operational modules and business data require authentication. Test accounts for the producer, analyst and administrator roles are delivered privately to the instructor.</p>
+</section>

@@ -38,7 +38,7 @@ def init_system(app):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     db.init_app(app)
 
-    from . import seed, views_account, views_auth, views_crisp, views_monitor, views_ops, views_prices
+    from . import pgc, seed, views_account, views_auth, views_crisp, views_monitor, views_ops, views_prices
     from .services import record_event
     views_auth.register_routes(app)
     views_ops.register_routes(app)
@@ -46,6 +46,7 @@ def init_system(app):
     views_crisp.register_routes(app)
     views_prices.register_routes(app)
     views_account.register_routes(app)
+    pgc.register_routes(app)
     seed.register_commands(app)
 
     @app.before_request

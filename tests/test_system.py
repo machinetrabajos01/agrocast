@@ -272,3 +272,15 @@ def test_failed_logins_are_throttled_by_email(app):
     c = app.test_client()
     r = c.post("/login", data={"_csrf": csrf(c), "email": "admin@test.co", "password": PASSWORD})
     assert r.status_code == 429
+
+
+def test_homepage_has_every_pgc_section_and_resources(app):
+    c = app.test_client()
+    html = c.get("/").get_data(as_text=True)
+    for anchor in ("pgc-title", "pgc-problem", "pgc-general", "pgc-specific", "pgc-framework", "pgc-method",
+                   "pgc-references", "pgc-resources"):
+        assert f'id="{anchor}"' in html, anchor
+    assert "Studer, S." in html and "Development schedule" in html
+    assert c.get("/project/pgc").status_code == 200
+    assert c.get("/docs/user-manual").status_code == 200 and b"<table>" in c.get("/docs/technical-manual").data
+    assert c.get("/docs/../app.py").status_code == 404 and c.get("/docs/unknown").status_code == 404

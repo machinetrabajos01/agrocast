@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-page legal">
+  <div class="page-head"><div><div class="eyebrow">Documentation</div><h1>{{ title }}</h1></div></div>
+  <nav class="legal-nav">{% for key, d in docs.items() %}<a class="{{ 'active' if key == slug }}" href="{{ url_for('user_docs', slug=key) }}">{{ d[0] }}</a>{% endfor %}</nav>
+  <article class="cardx legal-text doc-text">{{ html }}</article>
+</div>
+{% endblock %}
