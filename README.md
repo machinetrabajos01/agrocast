@@ -10,6 +10,11 @@ the official UPRA agricultural input price index six months ahead.
   (business and data understanding, data engineering, model engineering, evaluation, deployment,
   monitoring), each with its actual work, figures and results.
 - Public model demonstration (`/crisp-ml/deployment`) that accepts new monthly values and returns a forecast.
+- Food prices from DANE SIPSA for 375 products (daily bulletin for fresh produce, monthly series for the
+  rest) with a 3-month forecast per product, a price calculator for shopping lists (cheapest market,
+  median cost, saving) and a PDF of the cheapest purchase. Data refreshed every day by GitHub Actions.
+- Privacy policy (Law 1581 of 2012), terms of use, cookie policy and notice, self-service download and
+  deletion of personal data, CSP with nonces and other security headers.
 - Registration, login and logout; passwords stored as salted scrypt hashes; CSRF protection on every form.
 - Three roles enforced on the server: **producer**, **analyst** and **admin**.
 - Persistent PostgreSQL database (Supabase, schema `agrocast`).
@@ -58,6 +63,7 @@ python -m src.pipeline --actualizar-fuentes   # download UPRA, TRM, Pink Sheet a
 python -m src.evidence                        # CRISP-ML evidence: reports/crisp/evidence.json, experiments.csv, figures
 python -m src.train_model --version 1.1.0     # model artifact + model card in models/
 python -m src.monitoring_test                 # initial monitoring test (SIMULATED data)
+python -m src.food_prices build               # food prices (DANE SIPSA daily + monthly) and their forecasts
 python -m pytest -q                           # leakage, pipeline and information system tests
 ```
 
@@ -129,6 +135,13 @@ The repository includes `render.yaml`.
 2. Set `DATABASE_URL` (the Supabase pooler URL above). `FLASK_SECRET_KEY` is generated automatically.
 3. Build: `pip install -r requirements.txt` · Start: `gunicorn app:app` · Health check: `/health`.
 4. After the first deploy, open `/health` — it must report `"database": "ok"`.
+
+## Daily data update
+
+`.github/workflows/update-prices.yml` runs every day (7:00 a.m. and 4:30 p.m. Colombia) and loads the
+latest DANE food prices, forecasts, UPRA index months and SIPSA-I input prices into the database. Add the
+repository secret **`DATABASE_URL`** (Settings → Secrets and variables → Actions) with the same value used
+in Render. It can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Configuration
 

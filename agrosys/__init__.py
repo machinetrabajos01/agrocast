@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import time
 from datetime import timedelta
 
 from flask import g, render_template, request
 from markupsafe import Markup
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .db import DATABASE_URL, IS_POSTGRES, db
 from .security import PERMISSIONS, can, check_csrf, csrf_token, load_current_user
@@ -29,20 +31,27 @@ def init_system(app):
         SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "0") == "1",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
     )
+    if os.getenv("RENDER"):
+        # Render terminates TLS in its proxy; trust one hop so request.is_secure and redirects use https.
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     db.init_app(app)
 
-    from . import seed, views_auth, views_crisp, views_monitor, views_ops
+    from . import seed, views_account, views_auth, views_crisp, views_monitor, views_ops, views_prices
     from .services import record_event
     views_auth.register_routes(app)
     views_ops.register_routes(app)
     views_monitor.register_routes(app)
     views_crisp.register_routes(app)
+    views_prices.register_routes(app)
+    views_account.register_routes(app)
     seed.register_commands(app)
 
     @app.before_request
     def _before():
         g.started = time.perf_counter()
+        g.csp_nonce = secrets.token_urlsafe(16)
         if request.endpoint == "static":
             return
         load_current_user()
@@ -56,6 +65,20 @@ def init_system(app):
             # Slow requests are stored so response times can be reviewed in the operational log.
             if elapsed > 3000 and response.status_code < 500:
                 record_event("http.slow_request", "warning", status_code=response.status_code, duration_ms=elapsed)
+        nonce = g.get("csp_nonce", "")
+        response.headers.setdefault("Content-Security-Policy", (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            "form-action 'self'; frame-ancestors 'none'"))
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        if request.is_secure:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if g.get("user") and request.endpoint != "static":
+            response.headers["Cache-Control"] = "no-store"   # personal pages are not kept in shared caches
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "same-origin")
@@ -82,4 +105,5 @@ def init_system(app):
     @app.context_processor
     def _inject():
         return {"current_user": g.get("user"), "can": can, "csrf_token": csrf_token, "permissions": PERMISSIONS,
+                "csp_nonce": g.get("csp_nonce", ""),
                 "csrf_field": lambda: Markup(f'<input type="hidden" name="_csrf" value="{csrf_token()}">')}

@@ -14,7 +14,7 @@
       {% if inf.plan_id %}<a class="btn btn-ghost" href="{{ url_for('plan_detail', plan_id=inf.plan_id) }}">Open plan #{{ inf.plan_id }}</a>{% endif %}</div>
   </div>
 </div>{% endblock %}
-{% block scripts %}<script>
+{% block scripts %}<script nonce="{{ csp_nonce }}">
 const o = {{ inf.output_payload|tojson }};
 renderChart('infChart', [o.origin_month, ...o.path.map(p => p.month)], [
   {label: 'Forecast', data: [o.last_value, ...o.path.map(p => p.value)], borderColor: '#8bc34a', borderWidth: 2, tension: .2},

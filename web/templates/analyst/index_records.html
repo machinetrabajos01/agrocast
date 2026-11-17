@@ -8,7 +8,7 @@
       <div class="d-flex gap-2 flex-wrap mb-3">{% for s, label in labels.items() %}<a class="btn btn-sm {{ 'btn-accent' if s == series else 'btn-ghost' }}" href="{{ url_for('index_records', series=s) }}">{{ label }}</a>{% endfor %}</div>
       <div class="table-wrap"><table class="table-darkx" style="min-width:520px"><thead><tr><th>Month</th><th>Value</th><th>Source</th><th>Registered by</th><th></th></tr></thead><tbody>
       {% for r in rows %}<tr><td>{{ r.month.strftime('%Y-%m') }}</td><td>{{ '%.4f'|format(r.value|float) }}</td><td>{{ r.source }}</td><td>{{ r.author.full_name if r.author else 'Initial load' }}</td>
-        <td>{% if loop.first %}<form method="post" action="{{ url_for('index_record_delete', series=series, month=r.month.strftime('%Y-%m')) }}" onsubmit="return confirm('Delete the latest observation?')">{{ csrf_field() }}<button class="btn btn-sm btn-danger-ghost">Delete</button></form>{% endif %}</td></tr>{% endfor %}
+        <td>{% if loop.first %}<form method="post" action="{{ url_for('index_record_delete', series=series, month=r.month.strftime('%Y-%m')) }}" data-confirm="Delete the latest observation?">{{ csrf_field() }}<button class="btn btn-sm btn-danger-ghost">Delete</button></form>{% endif %}</td></tr>{% endfor %}
       </tbody></table></div><p class="small-note mt-2">Showing the latest 36 months. Only the most recent month can be deleted, so the series stays continuous.</p>
     </div>
     <div class="cardx"><h2>Register or correct a month</h2>

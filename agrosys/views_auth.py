@@ -1,15 +1,26 @@
 """Registration, login, logout and user administration."""
 from __future__ import annotations
 
+from datetime import timedelta
+
 from flask import abort, flash, g, redirect, render_template, request, session, url_for
 from sqlalchemy import func
 
-from .db import ROLES, User, db, utcnow
+from .db import ROLES, EventLog, User, db, utcnow
 from .security import (EMAIL_RE, hash_password, login_user, password_problems, permission_required,
                        safe_next, verify_password)
 from .services import record_event
 
 MAX_FAILED_LOGINS = 5
+LOCK_MINUTES = 15
+POLICY_VERSION = "2026-11"
+
+
+def _recent_failures(email: str) -> int:
+    """Failed sign-ins for this email in the last minutes, stored server-side (clearing cookies does not reset it)."""
+    since = utcnow() - timedelta(minutes=LOCK_MINUTES)
+    events = EventLog.query.filter(EventLog.event == "auth.failed_login", EventLog.created_at >= since).all()
+    return sum(1 for e in events if (e.detail or {}).get("email") == email)
 
 
 def register_routes(app):
@@ -33,6 +44,8 @@ def register_routes(app):
                 errors.append("The password needs " + " and ".join(problems) + ".")
             if password != form.get("confirm", ""):
                 errors.append("The passwords do not match.")
+            if form.get("accept_policy") != "yes":
+                errors.append("You must accept the privacy policy and the terms of use to create an account.")
             if User.query.filter(func.lower(User.email) == email).first():
                 errors.append("An account with this email already exists.")
             if errors:
@@ -42,10 +55,11 @@ def register_routes(app):
                 # Business rule: self-registration always creates a producer account. Any "role"
                 # field sent by the client is ignored; only an administrator can change roles.
                 user = User(full_name=name, email=email, password_hash=hash_password(password),
-                            role="producer", department=form.get("department", "").strip()[:60] or None)
+                            role="producer", department=form.get("department", "").strip()[:60] or None,
+                            consent_at=utcnow(), consent_version=POLICY_VERSION)
                 db.session.add(user)
                 db.session.commit()
-                record_event("auth.register", user_id=user.id, requested_role=form.get("role"))
+                record_event("auth.register", user_id=user.id, policy_version=POLICY_VERSION)
                 login_user(user)
                 flash("Your producer account was created. Start by registering a farm.", "success")
                 return redirect(url_for("farms"))
@@ -58,10 +72,10 @@ def register_routes(app):
         if request.method == "POST":
             email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "")
-            failures = session.get("failed_logins", 0)
+            failures = max(session.get("failed_logins", 0), _recent_failures(email))
             if failures >= MAX_FAILED_LOGINS:
                 record_event("auth.locked", "warning", email=email)
-                flash("Too many failed attempts. Close the browser and try again later.", "danger")
+                flash(f"Too many failed attempts. Try again in {LOCK_MINUTES} minutes.", "danger")
                 return render_template("login.html"), 429
             user = User.query.filter(func.lower(User.email) == email).first()
             if user and user.is_active and verify_password(user, password):

@@ -22,7 +22,7 @@
     {% for r in compared %}<tr><td><a href="{{ url_for('inference_detail', inference_id=r.id) }}">#{{ r.id }}</a></td><td>{{ r.series }}</td><td>{{ r.target_month.strftime('%Y-%m') }}</td><td>{{ r.horizon }}</td><td>{{ r.predicted|round(2) }}</td><td>{{ r.actual|round(2) }}</td><td>{{ '%+.2f'|format(r.error_pct) }}%</td><td>{{ 'yes' if r.inside_80 else 'no' }}</td><td>{{ r.version }}</td></tr>
     {% else %}<tr><td colspan="9" class="muted">No target month has been observed yet. When the analyst registers the next UPRA month, the comparison appears here automatically.</td></tr>{% endfor %}</tbody></table></div></div>
 </div>{% endblock %}
-{% block scripts %}<script>
+{% block scripts %}<script nonce="{{ csp_nonce }}">
 const days = {{ by_day|map('list')|list|tojson }};
 renderChart('activityChart', days.map(d => String(d[0]).slice(0,10)), [
   {label: 'Inferences', data: days.map(d => d[1]), borderColor: '#8bc34a', borderWidth: 2, tension: .2},

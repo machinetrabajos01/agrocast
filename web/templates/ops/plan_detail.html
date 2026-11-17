@@ -6,8 +6,8 @@
     <p>Purchase month <strong>{{ plan.planned_month.strftime('%B %Y') }}</strong> · Owner {{ plan.owner.full_name }} · <span class="status status-{{ plan.status }}">{{ plan.status }}</span></p></div>
     {% if is_owner %}<div class="d-flex gap-2 flex-wrap">
       {% if editable %}<a class="btn btn-ghost" href="{{ url_for('plan_edit', plan_id=plan.id) }}"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
-      {% if plan.is_open %}<form method="post" action="{{ url_for('plan_cancel', plan_id=plan.id) }}" onsubmit="return confirm('Cancel this plan?')">{{ csrf_field() }}<button class="btn btn-danger-ghost">Cancel plan</button></form>{% endif %}
-      {% if plan.status in ('draft','cancelled') %}<form method="post" action="{{ url_for('plan_delete', plan_id=plan.id) }}" onsubmit="return confirm('Delete this plan permanently?')">{{ csrf_field() }}<button class="btn btn-danger-ghost"><i class="bi bi-trash"></i></button></form>{% endif %}
+      {% if plan.is_open %}<form method="post" action="{{ url_for('plan_cancel', plan_id=plan.id) }}" data-confirm="Cancel this plan?">{{ csrf_field() }}<button class="btn btn-danger-ghost">Cancel plan</button></form>{% endif %}
+      {% if plan.status in ('draft','cancelled') %}<form method="post" action="{{ url_for('plan_delete', plan_id=plan.id) }}" data-confirm="Delete this plan permanently?">{{ csrf_field() }}<button class="btn btn-danger-ghost"><i class="bi bi-trash"></i></button></form>{% endif %}
     </div>{% endif %}</div>
 
   <div class="steps">
@@ -85,7 +85,7 @@
     {% else %}<tr><td colspan="8" class="muted">The plan has not been evaluated yet.</td></tr>{% endfor %}</tbody></table></div></div>
 </div>
 {% endblock %}
-{% block scripts %}{% if plan.last_inference %}<script>
+{% block scripts %}{% if plan.last_inference %}<script nonce="{{ csp_nonce }}">
 const o = {{ plan.last_inference.output_payload|tojson }};
 const labels = [o.origin_month, ...o.path.map(p => p.month)];
 renderChart('planChart', labels, [

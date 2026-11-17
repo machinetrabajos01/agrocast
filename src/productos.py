@@ -76,16 +76,16 @@ def nutrientes(producto, presentacion):
 
 
 def recomendar(posicion, var, li80, ls80, precio, meses=6):
-    """Regla de compra: que tan caro esta hoy frente a dos anos y hacia donde va el rango estimado."""
+    """Purchase rule: how expensive the product is today against two years, and where the estimated range goes."""
     if ls80 < precio:
-        return "esperar", f"Se espera que baje en los próximos {meses} meses."
+        return "wait", f"The price is expected to fall within {meses} months."
     if posicion >= 0.67 and var <= -2:
-        return "esperar", "Está cerca de su precio más alto en dos años y se espera que baje."
+        return "wait", "It is close to its highest price of the last two years and is expected to fall."
     if li80 > precio:
-        return "comprar", f"Se espera que suba en los próximos {meses} meses."
+        return "buy", f"The price is expected to rise within {meses} months."
     if posicion <= 0.33 and var >= -1:
-        return "comprar", "Está cerca de su precio más bajo en dos años y no se estima una baja."
-    return "normal", "Precio en la zona media de los últimos dos años, sin señal clara."
+        return "buy", "It is close to its lowest price of the last two years and no fall is expected."
+    return "normal", "The price is in the middle of its two-year range, with no clear signal."
 
 
 def _un_producto(clave, y):

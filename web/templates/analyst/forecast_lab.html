@@ -31,7 +31,7 @@
     </div>
   </div>
 </div>{% endblock %}
-{% block scripts %}{% if result %}<script>
+{% block scripts %}{% if result %}<script nonce="{{ csp_nonce }}">
 const o = {{ result.output_payload|tojson }};
 renderChart('labChart', [o.origin_month, ...o.path.map(p => p.month)], [
   {label: 'Forecast', data: [o.last_value, ...o.path.map(p => p.value)], borderColor: '#8bc34a', borderWidth: 2, tension: .2},

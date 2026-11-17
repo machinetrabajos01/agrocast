@@ -13,9 +13,9 @@ os.environ["SQLITE_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 os.environ["FLASK_SECRET_KEY"] = "test-secret"
 
 from app import app as flask_app  # noqa: E402
-from agrosys.db import (EventLog, Inference, ModelVersion, PurchasePlan, User, db)  # noqa: E402
+from agrosys.db import (EventLog, FoodProduct, Inference, ModelVersion, PurchasePlan, ShoppingList, User, db)  # noqa: E402
 from agrosys.security import hash_password  # noqa: E402
-from agrosys.seed import seed_index, seed_model_versions, seed_products  # noqa: E402
+from agrosys.seed import seed_food, seed_index, seed_model_versions, seed_products  # noqa: E402
 
 PASSWORD = "Secret123"
 
@@ -29,6 +29,7 @@ def app():
         seed_index()
         seed_products()
         seed_model_versions()
+        seed_food()
         for email, role in (("admin@test.co", "admin"), ("analyst@test.co", "analyst")):
             db.session.add(User(full_name=role.title() + " User", email=email, role=role,
                                 password_hash=hash_password(PASSWORD)))
@@ -47,7 +48,7 @@ def login(client, email, password=PASSWORD):
 
 def register(client, email, **extra):
     data = {"full_name": "Test Producer", "email": email, "password": PASSWORD, "confirm": PASSWORD,
-            "_csrf": csrf(client, "/register"), **extra}
+            "accept_policy": "yes", "_csrf": csrf(client, "/register"), **extra}
     return client.post("/register", data=data)
 
 
@@ -190,3 +191,84 @@ def test_public_demo_accepts_new_values_and_rejects_bad_input(app):
     with app.app_context():
         events = {e.event for e in EventLog.query.all()}
     assert {"demo.forecast", "demo.rejected_input"} <= events
+
+
+
+def test_food_catalog_finds_beans_with_price_and_forecast(app):
+    c = app.test_client()
+    register(c, "beans@test.co")
+    html = c.get("/prices/catalog?q=frijol").get_data(as_text=True)
+    assert "cargamanto rojo" in html and "$" in html
+    with app.app_context():
+        bean = FoodProduct.query.filter(FoodProduct.name.like("Fr%jol cargamanto rojo")).first()
+        assert bean is not None and bean.outlook is not None
+        bean_id = bean.id
+    page = c.get(f"/prices/product/{bean_id}")
+    assert page.status_code == 200 and b"Where it is cheapest" in page.data
+    assert c.get("/prices/product/999999").status_code == 404
+
+
+def test_shopping_list_calculation_pdf_and_ownership(app):
+    owner, other = app.test_client(), app.test_client()
+    register(owner, "list-owner@test.co")
+    register(other, "list-other@test.co")
+    token = csrf(owner, "/prices")
+    owner.post("/prices/lists", data={"_csrf": token, "name": "Weekly market", "city": ""})
+    with app.app_context():
+        sl = ShoppingList.query.filter_by(name="Weekly market").first()
+        products = FoodProduct.query.filter(FoodProduct.name.in_(["Papa criolla limpia", "Arroz de primera"])).all()
+        list_id, ids = sl.id, [p.id for p in products]
+    assert len(ids) == 2
+    for pid in ids:
+        owner.post(f"/prices/lists/{list_id}/items", data={"_csrf": token, "product_id": pid, "quantity": "4"})
+    bad = owner.post(f"/prices/lists/{list_id}/items", data={"_csrf": token, "product_id": ids[0], "quantity": "-1"},
+                     follow_redirects=True)
+    assert b"quantity must be a number" in bad.data
+    html = owner.get(f"/prices?list={list_id}").get_data(as_text=True)
+    assert "Cost at the cheapest markets" in html and "You save" in html
+    pdf = owner.get(f"/prices/lists/{list_id}/pdf")
+    assert pdf.status_code == 200 and pdf.mimetype == "application/pdf" and pdf.data.startswith(b"%PDF")
+    assert other.get(f"/prices?list={list_id}").status_code == 403
+    assert other.get(f"/prices/lists/{list_id}/pdf").status_code == 403
+    other_token = csrf(other, "/prices")
+    assert other.post(f"/prices/lists/{list_id}/delete", data={"_csrf": other_token}).status_code == 403
+
+
+def test_legal_pages_consent_and_security_headers(app):
+    c = app.test_client()
+    for page in ("privacy", "terms", "cookies"):
+        assert c.get(f"/legal/{page}").status_code == 200
+    assert c.get("/legal/other").status_code == 404
+    r = c.get("/")
+    assert "nonce-" in r.headers["Content-Security-Policy"] and "frame-ancestors 'none'" in r.headers["Content-Security-Policy"]
+    assert b"cookie-banner" in r.data
+    data = {"full_name": "No Consent", "email": "noconsent@test.co", "password": PASSWORD, "confirm": PASSWORD,
+            "_csrf": csrf(c, "/register")}
+    c.post("/register", data=data)
+    with app.app_context():
+        assert User.query.filter_by(email="noconsent@test.co").first() is None
+
+
+def test_export_and_delete_my_account(app):
+    c = app.test_client()
+    register(c, "leaving@test.co")
+    export = c.get("/account/export")
+    body = export.get_data(as_text=True)
+    assert export.status_code == 200 and "leaving@test.co" in body and "password_hash" not in body
+    token = csrf(c, "/account")
+    c.post("/account/delete", data={"_csrf": token, "confirm_text": "DELETE", "password": "wrong"})
+    with app.app_context():
+        assert User.query.filter_by(email="leaving@test.co").first() is not None
+    c.post("/account/delete", data={"_csrf": token, "confirm_text": "DELETE", "password": PASSWORD})
+    with app.app_context():
+        assert User.query.filter_by(email="leaving@test.co").first() is None
+    assert c.get("/prices").status_code == 302
+
+
+def test_failed_logins_are_throttled_by_email(app):
+    for _ in range(5):
+        c = app.test_client()   # a new client each time: clearing cookies must not reset the counter
+        c.post("/login", data={"_csrf": csrf(c), "email": "admin@test.co", "password": "wrong-pass1"})
+    c = app.test_client()
+    r = c.post("/login", data={"_csrf": csrf(c), "email": "admin@test.co", "password": PASSWORD})
+    assert r.status_code == 429

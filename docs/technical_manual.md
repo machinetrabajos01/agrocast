@@ -45,8 +45,18 @@ prices and quantities). All foreign keys are indexed.
 - Authorization: `@permission_required(<permission>)` on every operational route, using the matrix in
   `agrosys/security.py`. Ownership is checked for farms, plans, inferences and incidents.
 - Privilege escalation: registration ignores any `role` field; only admins change roles, never their own.
-- Login throttling: five failed attempts per session block further attempts; failures are logged.
-- Headers: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`.
+- Login throttling: five failed attempts for the same email in 15 minutes block further attempts
+  (counted in `event_log`, so clearing cookies does not reset it); failures are logged.
+- Headers: Content-Security-Policy with a per-request nonce for inline scripts (no inline event
+  handlers), `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options: DENY`,
+  `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, and `Cache-Control: no-store`
+  on pages of signed-in users. `ProxyFix` trusts one proxy hop on Render. Request bodies are limited to 1 MB.
+- Personal data (Law 1581 of 2012): consent recorded at registration (`consent_at`, `consent_version`),
+  self-service export (`/account/export`) and deletion (`/account/delete`, which removes farms, plans,
+  lists and reports and unlinks the remaining records), usage records deleted after 12 months by the
+  daily job. No IP addresses are stored.
+- Secrets: none in the repository or its history; `DATABASE_URL` lives in Render and in the GitHub
+  Actions secret of the daily job. RLS is enabled on every table and the Data API roles have no access.
 
 ## 4. Roles and permissions
 
@@ -92,13 +102,33 @@ POST /api/v1/forecast          (analyst or admin session, header X-CSRF-Token)
 The response time of each request is also returned in the `X-Response-Time-ms` header.
 See `docs/monitoring_maintenance.md` for the monitoring procedures.
 
-## 7. Testing
+## 7. Food prices and the daily job
 
-`python -m pytest` runs 22 tests: 15 pipeline tests (temporal leakage, metrics, models) and 7
+- `src/food_prices.py` downloads the DANE SIPSA daily bulletin annex (`anex-SIPSADiario-<date>.xlsx`, fresh
+  produce in 16 wholesale markets, every business day) and the yearly wholesale series (monthly price of
+  every product in every market). Generic daily names are matched with the variety DANE reports as
+  predominant (`DAILY_TO_MONTHLY`).
+- For every product with at least 36 continuous months, persistence and ETS are compared on 12 rolling
+  origins (3-month horizon); the model with the lower MAE produces the forecast and the 80% range
+  (quantile of the log errors). The purchase signal (buy / wait / normal) uses the forecast range and the
+  position of the price in its two-year range.
+- Tables: `food_product`, `food_price` (frequency daily / monthly / national), `food_forecast`,
+  `food_outlook`, `data_refresh`, `shopping_list`, `shopping_item`
+  (migration `20261117090000_food_prices_privacy.sql`).
+- `.github/workflows/update-prices.yml` runs `python -m src.food_prices update-db` every day at 7:00 a.m.
+  and 4:30 p.m. (Colombia): food prices and forecasts, new UPRA index months from Datos Abiertos,
+  SIPSA-I input prices for the purchase plans and log retention. Each run writes a `data_refresh` row.
+  It needs the repository secret `DATABASE_URL` (same value as in Render).
+- Manual run: `flask --app app update-prices` or `python -m src.food_prices update-db`.
+
+## 8. Testing
+
+`python -m pytest` runs 30 tests: 15 pipeline tests (temporal leakage, metrics, models) and 15
 integration tests of the information system (protected routes, CSRF, role escalation, complete
-workflow, business rules, analyst API, admin restrictions).
+workflow, business rules, analyst API, admin restrictions, CRISP-ML pages and demo, food catalog,
+shopping lists, PDF, list ownership, legal pages, consent, data export and deletion, login throttling).
 
-## 8. Deployment and operations
+## 9. Deployment and operations
 
 See README sections *Local setup* and *Deployment*. Health check: `GET /health` returns the database
 status. Database backups are handled by Supabase (daily). To rotate the server role password run

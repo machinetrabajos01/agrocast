@@ -21,7 +21,8 @@ import pandas as pd  # noqa: E402
 from flask import Flask, abort, g, jsonify, render_template, request  # noqa: E402
 
 from agrosys import init_system  # noqa: E402
-from agrosys.db import DECISION_LABELS, Farm, Incident, Inference, PurchasePlan, db  # noqa: E402
+from agrosys.db import DECISION_LABELS, Farm, FoodProduct, Incident, Inference, PurchasePlan, db  # noqa: E402
+from agrosys.prices import latest_daily_date  # noqa: E402
 from agrosys.security import can, permission_required  # noqa: E402
 from agrosys.services import latest_index_month, plan_projection, record_event  # noqa: E402
 
@@ -63,6 +64,8 @@ def inject_globals():
         "results": load_results(),
         "logged_in": bool(g.get("user")),
         "user_email": g.user.email if g.get("user") else None,
+        "category_labels": {"Fertilizantes": "Fertilizers", "Fungicidas": "Fungicides", "Herbicidas": "Herbicides",
+                            "Insecticidas": "Insecticides"},
     }
 
 
@@ -177,6 +180,8 @@ def dashboard():
                                               Incident.status.in_(("open", "in_progress"))).count(),
         "last_month": latest_index_month(),
         "decision_labels": DECISION_LABELS,
+        "food_products": FoodProduct.query.count(),
+        "food_daily": latest_daily_date(),
     }
     if can("monitoring.view"):
         ctx.update(
@@ -206,23 +211,38 @@ def retrain():
         return jsonify({"ok": False, "error": "The pipeline exceeded the 15-minute limit."}), 504
 
 
+INPUT_GROUPS = ("Fertilizantes", "Fungicidas", "Herbicidas", "Insecticidas")
+
+
+def load_input_products() -> pd.DataFrame:
+    products = load_products()
+    return products[products["grupo"].isin(INPUT_GROUPS)] if not products.empty else products
+
+
 @app.route("/platform/what-to-buy")
 @permission_required("market.view")
 def what_to_buy():
-    products = load_products()
+    products = load_input_products()
     if products.empty:
-        return render_template("table_page.html", title="What to Buy Today", intro="No processed product dataset is available.", columns=[], rows=[])
-    filtered = products.sort_values(["recomendacion", "posicion_24m"], ascending=[True, True]).head(40)
+        return render_template("table_page.html", title="What to buy today", intro="No processed product dataset is available.", columns=[], rows=[])
+    order = {"buy": 0, "wait": 1, "normal": 2}
+    filtered = products.assign(_o=products["recomendacion"].map(order)).sort_values(["_o", "posicion_24m"]).head(60)
     columns = ["producto", "grupo", "presentacion", "precio", "posicion_24m", "var_12m_pct", "recomendacion", "motivo"]
+    labels = {"producto": "Product", "grupo": "Group", "presentacion": "Presentation", "precio": "National price",
+              "posicion_24m": "Position in 2-year range (0 = lowest)", "var_12m_pct": "Change 12 months %",
+              "recomendacion": "Signal", "motivo": "Reason"}
     rows = filtered[columns].fillna("").to_dict("records")
-    return render_template("table_page.html", title="What to Buy Today", intro="Decision support based on current price position, recent variation and the product-level forecast rule.", columns=columns, rows=rows, currency_cols=["precio"])
+    return render_template("table_page.html", title="What to buy today",
+                           intro=f"Fertilizers and pesticides ranked by purchase signal, from the latest SIPSA-I month ({str(products['fecha_precio'].max())[:7]}).",
+                           columns=columns, labels=labels, rows=rows, currency_cols=["precio"])
 
 
 @app.route("/platform/my-market")
 @permission_required("market.view")
 def my_market():
-    products = load_products()
-    groups = products.groupby("grupo", as_index=False)["precio"].median().sort_values("precio") if not products.empty else pd.DataFrame()
+    products = load_input_products()
+    groups = (products.groupby("grupo", as_index=False).agg(precio=("precio", "median"), n=("precio", "size"))
+              .sort_values("precio")) if not products.empty else pd.DataFrame()
     return render_template("market.html", groups=groups.to_dict("records"))
 
 
@@ -231,29 +251,33 @@ def my_market():
 def cheapest_location():
     df = load_prices()
     if df.empty:
-        return render_template("table_page.html", title="Where It Is Cheapest", intro="No price dataset is available.", columns=[], rows=[])
+        return render_template("table_page.html", title="Where inputs are cheapest", intro="No price dataset is available.", columns=[], rows=[])
     latest = df["fecha"].max()
-    sub = df[df["fecha"].eq(latest)].sort_values("precio").head(60)
-    cols = ["producto", "departamento", "presentacion", "precio"]
-    return render_template("table_page.html", title="Where It Is Cheapest", intro=f"Lowest observed records in the latest available month: {latest:%B %Y}.", columns=cols, rows=sub[cols].fillna("").to_dict("records"), currency_cols=["precio"])
+    sub = df[df["fecha"].eq(latest) & df["departamento"].ne("Nacional")].sort_values("precio").head(80)
+    cols = ["producto", "presentacion", "departamento", "precio"]
+    labels = {"producto": "Product", "presentacion": "Presentation", "departamento": "Department", "precio": "Price"}
+    return render_template("table_page.html", title="Where inputs are cheapest",
+                           intro=f"Lowest department prices of agricultural inputs in the latest SIPSA-I month: {latest:%B %Y}. Food prices by market are in Food prices today.",
+                           columns=cols, labels=labels, rows=sub[cols].fillna("").to_dict("records"), currency_cols=["precio"])
 
 
 @app.route("/platform/price-evolution")
 @permission_required("market.view")
 def price_evolution():
-    products = load_products()
+    products = load_input_products()
     selected = request.args.get("product", "")
     names = products["producto"].dropna().drop_duplicates().sort_values().tolist() if not products.empty else []
-    if not selected and names:
-        selected = names[0]
+    if selected not in names:
+        selected = names[0] if names else ""
     history = load_prices()
-    hist = history[history["producto"].eq(selected)].groupby("fecha", as_index=False)["precio"].median().tail(48) if selected and not history.empty else pd.DataFrame(columns=["fecha", "precio"])
+    hist = (history[history["producto"].eq(selected) & history["departamento"].eq("Nacional")]
+            .groupby("fecha", as_index=False)["precio"].median().tail(48)) if selected and not history.empty else pd.DataFrame(columns=["fecha", "precio"])
     forecast = pd.DataFrame()
     pp = DATA / "producto_pronostico.csv"
     if pp.exists() and selected:
         p = pd.read_csv(pp)
         forecast = p[p["producto"].eq(selected)].sort_values("horizonte")
-    return render_template("price_evolution.html", names=names[:250], selected=selected, history=hist.to_dict("records"), forecast=forecast.to_dict("records"))
+    return render_template("price_evolution.html", names=names, selected=selected, history=hist.to_dict("records"), forecast=forecast.to_dict("records"))
 
 
 @app.route("/forecast/six-month")
@@ -266,7 +290,8 @@ def six_month():
 @permission_required("market.view")
 def alerts():
     products = load_products()
-    alert_rows = products[products["recomendacion"].isin(["comprar", "esperar"])] if not products.empty else pd.DataFrame()
+    products = load_input_products()
+    alert_rows = products[products["recomendacion"].isin(["buy", "wait"])] if not products.empty else pd.DataFrame()
     return render_template("alerts.html", rows=alert_rows.head(40).fillna("").to_dict("records"))
 
 

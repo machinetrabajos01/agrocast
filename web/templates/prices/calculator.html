@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-page">
+  <div class="page-head"><div>
+    <div class="eyebrow">Market · Price calculator</div>
+    <h1>What does my list cost today?</h1>
+    <p>Add the vegetables, fruits, grains and other foods you need with their quantity. AGROCAST finds the cheapest wholesale market for each one with the latest DANE prices{% if latest_daily %} (daily bulletin of {{ latest_daily.strftime('%Y-%m-%d') }}){% endif %}, compares it with the median market and shows where the price is heading.</p>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('prices_catalog') }}"><i class="bi bi-list-ul"></i> All food prices</a></div>
+
+  <div class="grid-calc">
+    <aside class="cardx">
+      <h2>My lists</h2>
+      <div class="list-nav">
+        {% for l in lists %}<a class="{{ 'active' if selected and l.id == selected.id }}" href="{{ url_for('prices_home', list=l.id) }}"><i class="bi bi-basket"></i> {{ l.name }} <span class="muted small">({{ l.items|length }})</span></a>{% else %}<p class="muted small">You have no lists yet.</p>{% endfor %}
+      </div>
+      <form method="post" action="{{ url_for('prices_list_create') }}" class="mt-3">{{ csrf_field() }}
+        <label class="form-label" for="new_name">New list</label>
+        <input class="form-control" id="new_name" name="name" maxlength="80" placeholder="e.g. Weekly market" required>
+        <select class="form-select mt-2" name="city" aria-label="City"><option value="">All markets</option>{% for c in cities %}<option>{{ c }}</option>{% endfor %}</select>
+        <button class="btn btn-accent w-100 mt-2"><i class="bi bi-plus"></i> Create list</button>
+      </form>
+    </aside>
+
+    <section>
+    {% if selected %}
+      <div class="cardx" id="items">
+        <div class="d-flex justify-content-between flex-wrap gap-2 align-items-start">
+          <div><h2 class="m-0">{{ selected.name }}</h2><p class="muted small m-0">{{ 'Markets in ' ~ selected.city if selected.city else 'All markets in the country' }}</p></div>
+          <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-accent {{ 'disabled' if not lines }}" href="{{ url_for('prices_list_pdf', list_id=selected.id) }}"><i class="bi bi-file-earmark-pdf"></i> Download PDF</a>
+            <form method="post" action="{{ url_for('prices_list_delete', list_id=selected.id) }}" data-confirm="Delete this list?">{{ csrf_field() }}<button class="btn btn-danger-ghost"><i class="bi bi-trash"></i></button></form>
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('prices_item_add', list_id=selected.id) }}" class="row g-2 align-items-end mt-3">{{ csrf_field() }}
+          <div class="col-md-7"><label class="form-label" for="product_id">Product</label>
+            <input class="form-control mb-2" id="product_search" type="search" placeholder="Type to filter, e.g. frijol, papa, tomate" aria-label="Filter products" autocomplete="off">
+            <select class="form-select" id="product_id" name="product_id" required><option value="">Choose a product…</option>
+              {% for gname in groups %}<optgroup label="{{ gname }}">{% for p in products if p.food_group == gname %}<option value="{{ p.id }}">{{ p.name }}{{ ' · daily price' if p.has_daily }}</option>{% endfor %}</optgroup>{% endfor %}
+            </select></div>
+          <div class="col-md-3"><label class="form-label" for="quantity">Quantity (kg, units or litres)</label>
+            <input class="form-control" id="quantity" name="quantity" inputmode="decimal" placeholder="e.g. 5" required></div>
+          <div class="col-md-2"><button class="btn btn-accent w-100"><i class="bi bi-plus-lg"></i> Add</button></div>
+        </form>
+
+        {% if lines %}
+        <div class="kpi-grid three mt-3">
+          <div class="kpi"><div class="label">Cost at the cheapest markets</div><div class="value">${{ '{:,.0f}'.format(totals.cheapest) }}</div><div class="note">{{ totals.priced }} of {{ lines|length }} products priced</div></div>
+          <div class="kpi"><div class="label">Cost at the median market</div><div class="value">${{ '{:,.0f}'.format(totals.median) }}</div><div class="note">Typical wholesale cost</div></div>
+          <div class="kpi"><div class="label">You save</div><div class="value text-green">${{ '{:,.0f}'.format(totals.saving) }}</div><div class="note">Buying each product where it is cheapest</div></div>
+        </div>
+        <div class="table-wrap mt-3"><table class="table-darkx">
+          <thead><tr><th>Product</th><th>Quantity</th><th>Cheapest market</th><th>Price / unit</th><th>Cost</th><th>Median cost</th><th>Price date</th><th>3-month outlook</th><th></th></tr></thead>
+          <tbody>
+          {% for l in lines %}{% set p = l.product %}
+            <tr>
+              <td><a href="{{ url_for('prices_product', product_id=p.id) }}">{{ p.name }}</a></td>
+              <td>{{ '{:g}'.format(l.quantity) }} {{ p.unit|replace('1 ', '')|replace('kilogramo', 'kg') }}</td>
+              {% if l.cheapest %}
+              <td class="small">{{ l.cheapest.market }}{% if selected.city and not l.city_matched %}<br><span class="muted">not sold in {{ selected.city }}</span>{% endif %}</td>
+              <td>${{ '{:,.0f}'.format(l.cheapest_price) }}</td>
+              <td><strong>${{ '{:,.0f}'.format(l.cost_cheapest) }}</strong></td>
+              <td class="muted">${{ '{:,.0f}'.format(l.cost_median) }}</td>
+              <td class="small">{{ l.date.strftime('%Y-%m-%d') }} <span class="tag {{ 'tag-today' if l.source == 'daily' }}">{{ 'today' if l.source == 'daily' else 'month' }}</span></td>
+              {% else %}<td colspan="5" class="muted small">No recent price published for this product.</td>{% endif %}
+              <td>{% if l.outlook %}<span class="tag signal-{{ l.outlook.recommendation }}">{{ l.outlook.label }}</span> <span class="small muted">{{ '{:+.1f}'.format(l.outlook.change_3m_pct|float) }}%</span>{% else %}<span class="muted small">—</span>{% endif %}</td>
+              <td><form method="post" action="{{ url_for('prices_item_delete', list_id=selected.id, item_id=l.item.id) }}">{{ csrf_field() }}<button class="btn btn-sm btn-danger-ghost" title="Remove"><i class="bi bi-x"></i></button></form></td>
+            </tr>
+          {% endfor %}
+          </tbody></table></div>
+        {% else %}
+        <p class="muted mt-3">The list is empty. Add your first product above (for example "Fríjol cargamanto rojo", 5 kg).</p>
+        {% endif %}
+
+        <details class="mt-3"><summary class="small">List settings</summary>
+          <form method="post" action="{{ url_for('prices_list_settings', list_id=selected.id) }}" class="row g-2 mt-1">{{ csrf_field() }}
+            <div class="col-md-6"><input class="form-control" name="name" value="{{ selected.name }}" maxlength="80" aria-label="List name" required></div>
+            <div class="col-md-4"><select class="form-select" name="city" aria-label="City"><option value="">All markets</option>{% for c in cities %}<option {{ 'selected' if c == selected.city }}>{{ c }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><button class="btn btn-ghost w-100">Save</button></div>
+          </form></details>
+      </div>
+    {% else %}
+      <div class="cardx"><h2>Start with a list</h2><p class="muted">Create a list on the left (for example "Weekly market"), choose a city if you only buy there, and add the products you need.</p></div>
+    {% endif %}
+      <p class="small muted mt-3">Prices are wholesale prices from DANE - SIPSA (daily bulletin for fresh produce, monthly series for the rest). Retail prices are usually higher. {% if refresh %}Database refreshed {{ refresh.refreshed_at.strftime('%Y-%m-%d %H:%M') }} UTC.{% endif %}</p>
+    </section>
+  </div>
+</div>
+{% endblock %}
