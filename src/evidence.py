@@ -320,7 +320,7 @@ def figures(ind, raw_total, y, bt, metricas, part, resid):
 def experiments(metricas, grids, created):
     rows = []
     for _, r in metricas[metricas.horizonte == 0].iterrows():
-        rows.append({"experiment": f"backtest-{r.modelo}-{r.bloque}", "date": created, "model": SHORT[r.modelo],
+        rows.append({"experiment": f"backtest-{r.modelo}-{'validation' if r.bloque == 'validacion' else 'test'}", "date": created, "model": SHORT[r.modelo],
                      "configuration": {"naive": "last value repeated", "snaive": "value 12 months earlier",
                                        "ets": "log; additive error; trend by AICc (none/additive/damped)",
                                        "sarima": "log; d=1; p,q in 0..2; seasonal (1,0,0,12) optional; AICc per origin",
@@ -352,7 +352,7 @@ def run():
     bt = pd.read_csv(c.REPORTES / "backtest.csv", parse_dates=["origen", "fecha"])
     metricas = pd.read_csv(c.REPORTES / "metricas.csv")
     results = json.loads((c.REPORTES / "resultados.json").read_text(encoding="utf-8"))
-    created = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    created = datetime.now().astimezone().strftime("%Y-%m-%d")   # local date of the run
 
     val_o, test_o = ev.origenes(y)
     y_val_end = y.iloc[: val_o[-1] + 1]          # data available at the last validation origin
