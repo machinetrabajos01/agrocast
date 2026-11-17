@@ -34,8 +34,8 @@
         </div>
 
         <form method="post" action="{{ url_for('prices_item_add', list_id=selected.id) }}" class="row g-2 align-items-end mt-3">{{ csrf_field() }}
+          <div class="col-12"><input class="form-control" id="product_search" type="search" placeholder="Search a product: frijol, papa, tomate, arroz…" aria-label="Search a product" autocomplete="off"></div>
           <div class="col-md-7"><label class="form-label" for="product_id">Product</label>
-            <input class="form-control mb-2" id="product_search" type="search" placeholder="Type to filter, e.g. frijol, papa, tomate" aria-label="Filter products" autocomplete="off">
             <select class="form-select" id="product_id" name="product_id" required><option value="">Choose a product…</option>
               {% for gname in groups %}<optgroup label="{{ gname }}">{% for p in products if p.food_group == gname %}<option value="{{ p.id }}">{{ p.name }}{{ ' · daily price' if p.has_daily }}</option>{% endfor %}</optgroup>{% endfor %}
             </select></div>

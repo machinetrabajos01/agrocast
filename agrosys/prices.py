@@ -19,7 +19,10 @@ def normalize(text: str) -> str:
 def catalog(query: str = "", group: str = ""):
     products = FoodProduct.query.order_by(FoodProduct.food_group, FoodProduct.name).all()
     q = normalize(query)
-    return [p for p in products if (not q or q in normalize(p.name)) and (not group or p.food_group == group)]
+    found = [p for p in products if (not q or q in normalize(p.name)) and (not group or p.food_group == group)]
+    if q:   # names that start with the search come first ("tomate" before "salsa de tomate")
+        found.sort(key=lambda p: (not normalize(p.name).startswith(q), normalize(p.name)))
+    return found
 
 
 def groups():
