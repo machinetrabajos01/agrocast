@@ -22,10 +22,12 @@
     <div class="desktop-nav">
       <div class="nav-drop"><button>Project <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
         <a href="{{ url_for('home') }}">Overview</a>
+        <a href="{{ url_for('pgc') }}">PGC Documentation</a>
         <a href="{{ url_for('problem') }}">Problem & Objectives</a>
         <a href="{{ url_for('crisp') }}">CRISP-ML(Q)</a>
         <a href="{{ url_for('system_design') }}">System Design</a>
-        <a href="{{ url_for('documentation') }}">Documentation</a></div></div>
+        <a href="{{ url_for('documentation') }}">Technical Documentation</a>
+        <a href="{{ url_for('user_docs', slug='user-manual') }}">User Documentation</a></div></div>
       <div class="nav-drop"><button>CRISP-ML <i class="bi bi-chevron-down"></i></button><div class="drop-menu">
         <a href="{{ url_for('crisp_phase', phase='business-data') }}">1. Business &amp; Data Understanding</a>
         <a href="{{ url_for('crisp_phase', phase='data-engineering') }}">2. Data Engineering</a>

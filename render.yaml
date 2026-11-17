@@ -17,3 +17,5 @@ services:
         generateValue: true
       - key: SESSION_COOKIE_SECURE
         value: "1"
+      - key: PRESENTATION_VIDEO_URL
+        sync: false

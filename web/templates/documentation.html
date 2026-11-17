@@ -8,7 +8,9 @@ supabase/          database migrations (schema agrocast)
 web/               Flask presentation layer
 docs/              technical and user manuals, training guide,
                    support, monitoring and maintenance</div></div><div class="cardx"><h2>Reproduce</h2><div class="codebox">python -m pytest
-python -m src.pipeline --sin-preparar
-python -m src.train_model --version 1.0.0
+python -m src.pipeline --actualizar-fuentes
+python -m src.evidence
+python -m src.train_model --version 1.1.0
+python -m src.food_prices build
 flask --app app seed
-flask --app app run</div><p class="muted mt-3">For a fresh data run, the original ingestion pipeline also supports the <code>--actualizar-fuentes</code> option.</p></div></div><div class="cardx mt-3"><h2>Academic interpretation</h2><p class="muted">The project should be presented as an evidence-based forecasting prototype. The final test block is not used to tune the models, and uncertainty is communicated explicitly.</p></div></div>{% endblock %}
+flask --app app run</div><p class="muted mt-3">For a fresh data run, the original ingestion pipeline also supports the <code>--actualizar-fuentes</code> option.</p></div></div><div class="cardx mt-3"><h2>Documents</h2><p class="muted">Readable in the browser: <a class="positive" href="{{ url_for('user_docs', slug='user-manual') }}">user manual</a>, <a class="positive" href="{{ url_for('user_docs', slug='training-guide') }}">training guide</a>, <a class="positive" href="{{ url_for('user_docs', slug='support') }}">incidents and feedback</a>, <a class="positive" href="{{ url_for('user_docs', slug='technical-manual') }}">technical manual</a>, <a class="positive" href="{{ url_for('user_docs', slug='monitoring') }}">monitoring and maintenance</a>, <a class="positive" href="{{ url_for('user_docs', slug='data-dictionary') }}">data dictionary</a>. Source code: <a class="positive" href="{{ repo_url }}" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p></div><div class="cardx mt-3"><h2>Academic interpretation</h2><p class="muted">The project should be presented as an evidence-based forecasting prototype. The final test block is not used to tune the models, and uncertainty is communicated explicitly.</p></div></div>{% endblock %}

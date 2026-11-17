@@ -1,0 +1,93 @@
+<div class="pgc" id="pgc">
+  <nav class="pgc-index cardx" aria-label="PGC documentation sections">
+    <strong>PGC documentation</strong>
+    <a href="#pgc-title">1. Project title</a><a href="#pgc-problem">2. Problem statement and justification</a>
+    <a href="#pgc-general">3. General objective</a><a href="#pgc-specific">4. Specific objectives</a>
+    <a href="#pgc-framework">5. Reference framework</a><a href="#pgc-method">6. Methodology and development schedule</a>
+    <a href="#pgc-references">7. Bibliographic references</a><a href="#pgc-resources">Resources and video</a>
+  </nav>
+
+  <section class="cardx pgc-section" id="pgc-title">
+    <span class="tag">1 · Project title</span>
+    <h2 class="mt-3">AGROCAST: forecasting agricultural input and food prices with CRISP-ML(Q) to support purchase decisions of Colombian producers</h2>
+    <p class="muted mb-0">Machine Learning · Systems Engineering · University of Cundinamarca, Chía extension · Jean Pierre González Espinel, Daniel Camilo Ruiz Rodriguez, Daniel Páez · Instructor: Edison Gustavo Cañon Varela · November 2026.</p>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-problem">
+    <span class="tag">2 · Problem statement and justification</span>
+    <h3 class="mt-3">Problem and context</h3>
+    <p>Fertilizers and pesticides are among the largest production costs of Colombian crops, and most of them are imported and priced in dollars, so their local price follows the exchange rate and international commodity markets. The official agricultural input price index published monthly by UPRA rose from 100 points in January 2021 to <strong>224.1 in June 2022 (+124%)</strong>; the fertilizer sub-index reached 277.1. The index then fell to 134.7 in May 2024 and rose again by 14% between February and May 2026 (UPRA, 2026). The surge coincided with the international fertilizer price shock of 2021-2022 (World Bank, 2022; FAO, 2022).</p>
+    <h3>Affected population and consequences</h3>
+    <p>Small and medium crop producers, producer associations and the technical assistants who advise them buy inputs once or twice per season. Without an anticipated signal they prepare budgets that become outdated, buy at the top of the cycle or postpone purchases that later cost more, which reduces margins and can lead to lower fertilization and yields. The same uncertainty affects households and small businesses that buy food in wholesale markets, whose prices DANE publishes daily (DANE, 2026a).</p>
+    <h3>Justification and contribution of the intelligent system</h3>
+    <p>The data needed to anticipate these changes are public but scattered (UPRA, DANE SIPSA, Financial Superintendence, World Bank) and are not presented as a decision. AGROCAST joins them, evaluates forecasting models with a quality-assured process (Studer et al., 2021) and turns the selected model into a recommendation inside a web information system: each purchase plan is evaluated with the six-month forecast of the index (buy now, defer, or buy as planned, with its uncertainty), and each shopping list is priced with the cheapest wholesale market of the day and a three-month price outlook. The project reports honestly what the model achieves and what it does not (section 6).</p>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-general">
+    <span class="tag">3 · General objective</span>
+    <p class="mt-3 mb-0">Develop, evaluate and deploy, following the six phases of CRISP-ML(Q), a forecasting model of the official agricultural input price index of Colombia up to six months ahead, and integrate it with daily food prices in a private web information system that supports purchase decisions of producers with transparent uncertainty.</p>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-specific">
+    <span class="tag">4 · Specific objectives</span>
+    <div class="table-wrap mt-3"><table class="table-darkx"><thead><tr><th>#</th><th>Objective</th><th>Verification</th><th>Status</th></tr></thead><tbody>
+      <tr><td>1</td><td><strong>Data preparation:</strong> build a clean, leakage-free monthly dataset of the UPRA index with external variables, and daily and monthly SIPSA food prices, documenting every transformation.</td><td>Quality report, before/after evidence, temporal partitions (CRISP-ML phase 2)</td><td><span class="tag">Achieved</span></td></tr>
+      <tr><td>2</td><td><strong>Model development:</strong> train and tune persistence, seasonal naive, ETS, SARIMA and direct Ridge regression with rolling-origin validation.</td><td>Experiment log and tuning grids (phase 3)</td><td><span class="tag">Achieved</span></td></tr>
+      <tr><td>3</td><td><strong>Model evaluation:</strong> select a model with a rule fixed in advance and report it on an independent test block, beating persistence.</td><td>Validation MASE 3.324 vs 4.321; test MASE 1.837 vs 1.715 (phase 4)</td><td><span class="tag tag-warn">Partially achieved</span></td></tr>
+      <tr><td>4</td><td><strong>System implementation:</strong> registration, login, roles enforced on the server, persistent database, business processes and server-side inference with history.</td><td>Published system, 30 automated tests</td><td><span class="tag">Achieved</span></td></tr>
+      <tr><td>5</td><td><strong>Validation of the solution:</strong> verify the published system end to end with the three roles, monitor errors, response times and drift, and update the data automatically.</td><td>Operational review, monitoring test, daily update job</td><td><span class="tag">Achieved</span></td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-framework">
+    <span class="tag">5 · Reference framework</span>
+    <h3 class="mt-3">Background and related studies</h3>
+    <ul class="muted">
+      <li><strong>Fertilizer price shock.</strong> The World Bank (2022) and FAO (2022) documented the 2021-2022 rise of fertilizer prices driven by energy costs, export restrictions and the war in Ukraine; the UPRA index shows the same pattern in Colombia.</li>
+      <li><strong>Forecasting competitions.</strong> The M4 competition (Makridakis et al., 2020) and the comparison by Makridakis et al. (2018) found that simple statistical methods are hard to beat and often outperform machine learning on short monthly series, which guided the choice of ETS and SARIMA as main candidates and persistence as the reference.</li>
+      <li><strong>Agricultural price forecasting.</strong> Studies of wholesale agricultural prices, such as Jha and Sinha (2014), compare ARIMA with machine learning models and show that the best method depends on the series; this project therefore compares several families under the same protocol.</li>
+      <li><strong>Previous work of the team.</strong> The approved proposal and Activity 1 of the course defined the problem, the data sources and the evaluation protocol that this final version keeps.</li>
+    </ul>
+    <h3>Theoretical foundations</h3>
+    <ul class="muted">
+      <li><strong>CRISP-ML(Q)</strong> (Studer et al., 2021): six phases with quality assurance at each step; it organizes the whole project.</li>
+      <li><strong>Exponential smoothing (ETS)</strong> in state-space form, with model selection by AICc (Hyndman et al., 2002; Hyndman &amp; Athanasopoulos, 2021).</li>
+      <li><strong>ARIMA/SARIMA</strong> models of differenced series (Box et al., 2015), applied to the logarithm of the index.</li>
+      <li><strong>Ridge regression</strong> (Hoerl &amp; Kennard, 1970) for a direct multi-step model with correlated external predictors.</li>
+      <li><strong>Forecast evaluation:</strong> rolling-origin validation (Tashman, 2000; Hewamalage et al., 2023), MASE (Hyndman &amp; Koehler, 2006) and the Diebold-Mariano test with small-sample correction (Diebold &amp; Mariano, 1995; Harvey et al., 1997).</li>
+      <li><strong>Conformal prediction intervals</strong> from empirical forecast errors (Vovk et al., 2005).</li>
+    </ul>
+    <h3>Technical concepts of the solution</h3>
+    <ul class="muted mb-0">
+      <li>Python with pandas, statsmodels (Seabold &amp; Perktold, 2010) and scikit-learn (Pedregosa et al., 2011); Flask for the web application; PostgreSQL on Supabase with row level security.</li>
+      <li>Model versioning with frozen parameters, server-side inference, inference history and drift checks.</li>
+      <li>Web security following OWASP (2021): hashed passwords, CSRF tokens, role checks on the server, content security policy.</li>
+      <li>Personal data protection under Colombian Law 1581 of 2012 and Decree 1074 of 2015 (Congreso de la República de Colombia, 2012).</li>
+      <li>Official open data: UPRA index (UPRA, 2026), DANE SIPSA daily and monthly wholesale prices and SIPSA-I input prices (DANE, 2026a, 2026b), exchange rate (Superintendencia Financiera de Colombia, 2026) and World Bank Pink Sheet (World Bank, 2026).</li>
+    </ul>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-method">
+    <span class="tag">6 · Methodology and development schedule</span>
+    <h3 class="mt-3">CRISP-ML(Q) phases as applied</h3>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Phase</th><th>What was done</th><th>Main result</th></tr></thead><tbody>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='business-data') }}">1. Business and data understanding</a></td><td>Stakeholders, business and ML objectives, learning task (multi-step regression on a monthly series), sources, data quality, risks, success criteria.</td><td>93 monthly observations (2018-12 to 2026-08), no missing target values; annex and open data agree within 0.005 points.</td></tr>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='data-engineering') }}">2. Data engineering</a></td><td>Zeros as missing values, log transform and differencing (ADF and KPSS), lagged and external features, temporal partitions without leakage.</td><td>40 validation origins (2021-11 to 2025-02) and 12 independent test origins (2025-03 to 2026-02).</td></tr>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='model-engineering') }}">3. Model engineering</a></td><td>Persistence, seasonal naive, ETS, SARIMA (AICc grid of 18 orders per origin) and direct Ridge (alpha by time-series CV); experiment log.</td><td>SARIMA (1,1,1) without seasonal term on the log scale.</td></tr>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='evaluation') }}">4. Model evaluation</a></td><td>MAE, RMSE, MASE, Diebold-Mariano, interval coverage, fit gap, bias and residual diagnostics.</td><td>SARIMA selected (validation MASE 3.324 vs 4.321 for persistence); on the test block it did not beat persistence (1.837 vs 1.715); 80% interval coverage 91.7%.</td></tr>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='deployment') }}">5. Model deployment</a></td><td>Versioned artifact with frozen parameters and preprocessing, server-side inference, public demonstration and integration with purchase plans.</td><td>Version 1.1.0 active; inference in about 0.5 s including the database.</td></tr>
+      <tr><td><a href="{{ url_for('crisp_phase', phase='monitoring') }}">6. Monitoring and maintenance</a></td><td>Indicators, drift and performance rules, responsibilities, retraining criteria, simulated monitoring test, daily data update.</td><td>Consecutive-error rule detected a simulated 12% shock; daily job loads prices, forecasts and new index months.</td></tr>
+    </tbody></table></div>
+    <h3 class="mt-3">Development and integration of the web information system</h3>
+    <p class="muted">The model was integrated in a Flask application with a PostgreSQL database (Supabase, schema <code>agrocast</code>, row level security, dedicated server role) deployed on Render. Producers register farms, build purchase plans priced with SIPSA-I, evaluate them with the model, record a decision and register the actual purchase; analysts maintain index records and monitor the model; administrators manage users, roles and model versions. A food price module adds 375 products with daily and monthly DANE prices, a three-month forecast per product, a price calculator and a PDF of the cheapest purchase. Privacy policy, cookie policy, data export and account deletion follow Law 1581 of 2012. Operational modules and business data require authentication.</p>
+    <h3>Development schedule</h3>
+    <div class="table-wrap"><table class="table-darkx"><thead><tr><th>Activity</th><th>Responsible</th><th>Planned</th><th>Actual</th><th>Deliverable</th></tr></thead><tbody>
+      {% for a in schedule %}<tr><td>{{ a[0] }}</td><td class="small">{{ a[1] }}</td><td class="small">{{ a[2] }}</td><td class="small">{{ a[3] }}</td><td class="small">{{ a[4] }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <section class="cardx pgc-section" id="pgc-references">
+    <span class="tag">7 · Bibliographic references (APA 7)</span>
+    <ol class="references mt-3">{% for r in references %}<li>{{ r }}</li>{% endfor %}</ol>
+  </section>
+</div>
